@@ -25,7 +25,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Request, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from core.container import ServiceContainer
 from core.logging.context import get_request_id
@@ -34,6 +35,25 @@ from core.services.api_key_service import APIKeyError
 from core.services.auth_service import RequestContext
 
 _API_KEY_PREFIX = "cfk_live_"
+
+# Registering this as a fastapi.security scheme (rather than reading
+# request.headers by hand) is what makes FastAPI emit a `securitySchemes`
+# entry in the OpenAPI document and attach a `security` requirement to
+# every route that depends on it -- which is what makes the Swagger UI
+# "Authorize" lock icon appear on /docs and the auth requirement show up
+# on /redoc. `auto_error=False` so get_current_principal can raise its own
+# HTTPException with a consistent detail message instead of FastAPI's
+# generic one when the header is missing.
+bearer_scheme = HTTPBearer(
+    scheme_name="BearerAuth",
+    description=(
+        "Either a user JWT access token (obtained from `POST /auth/login` "
+        "or `POST /auth/refresh`) or a service-account API key "
+        "(`cfk_live_...`, obtained from `POST /api-keys`). Both are sent "
+        "identically as `Authorization: Bearer <token>`."
+    ),
+    auto_error=False,
+)
 
 
 def get_container(request: Request) -> ServiceContainer:
@@ -64,20 +84,14 @@ class Principal:
     display_name: str
 
 
-def _extract_bearer_token(request: Request) -> str:
-    auth = request.headers.get("authorization", "")
-    if not auth.lower().startswith("bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
-    token = auth[7:].strip()
-    if not token:
-        raise HTTPException(status_code=401, detail="Missing bearer token")
-    return token
-
-
 def get_current_principal(
-    request: Request, c: ServiceContainer = Depends(get_container)
+    request: Request,
+    c: ServiceContainer = Depends(get_container),
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(bearer_scheme),
 ) -> Principal:
-    token = _extract_bearer_token(request)
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+    token = credentials.credentials
     client_ip = getattr(request.state, "client_ip", None) or (
         request.client.host if request.client else None
     )

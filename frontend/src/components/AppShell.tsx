@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, type ReactNode, type ReactElement } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuth } from '@/providers/AuthProvider'
 
 // ---------------------------------------------------------------------------
 // Icons (inline SVG, no icon library dependency)
@@ -75,6 +76,37 @@ function Icon({ name }: { name: string }) {
         <rect x="16" y="16" width="10" height="10" rx="2" fill="currentColor" />
       </svg>
     ),
+    users: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+    shield: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    ),
+    key: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+      </svg>
+    ),
+    lock: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <rect x="3" y="11" width="18" height="11" rx="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+    ),
+    logout: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <polyline points="16 17 21 12 16 7" />
+        <line x1="21" y1="12" x2="9" y2="12" />
+      </svg>
+    ),
   }
   return icons[name] ?? null
 }
@@ -86,22 +118,31 @@ const NAV_GROUPS = [
   {
     label: 'Overview',
     items: [
-      { href: '/dashboard',  label: 'Dashboard',    icon: 'dashboard',   countKey: null },
+      { href: '/dashboard',  label: 'Dashboard',    icon: 'dashboard',   countKey: null, permission: null },
     ],
   },
   {
     label: 'Work',
     items: [
-      { href: '/inventory',  label: 'Inventory',    icon: 'inventory',   countKey: 'deviceCount' as const },
-      { href: '/validation', label: 'Validation',   icon: 'validation',  countKey: null },
-      { href: '/generate',   label: 'Generate YAML', icon: 'generate',   countKey: null },
+      { href: '/inventory',  label: 'Inventory',    icon: 'inventory',   countKey: 'deviceCount' as const, permission: 'inventory:read' },
+      { href: '/validation', label: 'Validation',   icon: 'validation',  countKey: null, permission: 'inventory:read' },
+      { href: '/generate',   label: 'Generate YAML', icon: 'generate',   countKey: null, permission: 'deployment:execute' },
     ],
   },
   {
     label: 'System',
     items: [
-      { href: '/history',    label: 'History',      icon: 'history',     countKey: null },
-      { href: '/settings',   label: 'Settings',     icon: 'settings',    countKey: null },
+      { href: '/history',    label: 'History',      icon: 'history',     countKey: null, permission: 'profile:read' },
+      { href: '/settings',   label: 'Settings',     icon: 'settings',    countKey: null, permission: null },
+    ],
+  },
+  {
+    label: 'Admin',
+    items: [
+      { href: '/admin/users',    label: 'Users',     icon: 'users',  countKey: null, permission: 'user:read' },
+      { href: '/admin/roles',    label: 'Roles',     icon: 'shield', countKey: null, permission: 'role:read' },
+      { href: '/admin/api-keys', label: 'API Keys',  icon: 'key',    countKey: null, permission: 'api:manage' },
+      { href: '/admin/policies', label: 'IP Policies', icon: 'lock', countKey: null, permission: 'policy:manage' },
     ],
   },
 ]
@@ -116,6 +157,10 @@ const PAGE_TITLES: Record<string, string> = {
   '/generate':   'Generate YAML',
   '/history':    'History',
   '/settings':   'Settings',
+  '/admin/users': 'Users',
+  '/admin/roles': 'Roles',
+  '/admin/api-keys': 'API Keys',
+  '/admin/policies': 'IP Policies',
 }
 
 // ---------------------------------------------------------------------------
@@ -123,7 +168,10 @@ const PAGE_TITLES: Record<string, string> = {
 // ---------------------------------------------------------------------------
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [theme, setThemeState] = useState<'dark' | 'light'>('dark')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const { user, hasPermission, logout } = useAuth()
 
   useEffect(() => {
     try {
@@ -147,6 +195,17 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const pageTitle = PAGE_TITLES[pathname] ?? 'ConfigFoundry'
 
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => !item.permission || hasPermission(item.permission)),
+  })).filter((group) => group.items.length > 0)
+
+  async function handleLogout() {
+    setMenuOpen(false)
+    await logout()
+    router.push('/login')
+  }
+
   return (
     <div className="app-shell">
       {/* Sidebar */}
@@ -161,7 +220,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="sidebar-nav">
-          {NAV_GROUPS.map((group) => (
+          {visibleGroups.map((group) => (
             <div key={group.label}>
               <div className="nav-group-label">{group.label}</div>
               {group.items.map((item) => {
@@ -224,6 +283,77 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
             </button>
+
+            {user && (
+              <div style={{ position: 'relative' }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setMenuOpen((v) => !v)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <span
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      background: 'var(--primary-bg)',
+                      color: 'var(--primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 11,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {(user.email ?? user.name ?? '?').slice(0, 1).toUpperCase()}
+                  </span>
+                  <span>{user.email ?? user.name ?? 'Account'}</span>
+                </button>
+
+                {menuOpen && (
+                  <>
+                    <div
+                      style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+                      onClick={() => setMenuOpen(false)}
+                    />
+                    <div
+                      className="card"
+                      style={{
+                        position: 'absolute',
+                        right: 0,
+                        top: 36,
+                        minWidth: 200,
+                        zIndex: 50,
+                        padding: 6,
+                      }}
+                    >
+                      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)', marginBottom: 4 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{user.email ?? user.name ?? 'Account'}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+                          {user.roles?.map((r) => r.name).join(', ') || 'No roles assigned'}
+                        </div>
+                      </div>
+                      <Link
+                        href="/settings?tab=security"
+                        className="nav-item"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <Icon name="lock" />
+                        <span>Security settings</span>
+                      </Link>
+                      <button
+                        className="nav-item"
+                        style={{ width: '100%', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                        onClick={handleLogout}
+                      >
+                        <Icon name="logout" />
+                        <span>Log out</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </header>
 

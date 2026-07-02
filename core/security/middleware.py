@@ -73,11 +73,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
         # Conservative baseline CSP for the served frontend. 'unsafe-inline'
         # on style-src is kept because the Next.js static export and the
-        # legacy static/ UI both use some inline styles; tightened further
-        # would require a nonce-based build step out of scope here.
+        # legacy static/ UI both use some inline styles. 'unsafe-inline' on
+        # script-src is also required: Next.js App Router's static export
+        # embeds inline <script> tags with no `src` attribute (the RSC
+        # hydration payload via self.__next_f.push(...), plus this app's own
+        # early theme-detection bootstrap script in the root layout) --
+        # without it, CSP silently blocks those scripts and the app never
+        # hydrates (renders a blank page with no console-visible crash).
+        # Tightened further (nonce/hash-based CSP) would require a
+        # Next.js build-time nonce-injection step, out of scope here.
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
             "style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data:; "
             "connect-src 'self'; "

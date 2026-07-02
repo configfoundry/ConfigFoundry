@@ -212,6 +212,14 @@ appropriate permission -- the API is no longer open by default.
 Send `Authorization: Bearer <access_token>` (user login) or
 `Authorization: Bearer cfk_live_...` (API key) on every request.
 
+### Interactive docs (Swagger UI / ReDoc)
+
+`/docs` and `/redoc` are registered as a `BearerAuth` HTTP security scheme
+in the OpenAPI document, so every protected route shows a lock icon and
+Swagger UI exposes an **Authorize** button. Paste either a JWT access
+token or an API key there (no `Bearer` prefix needed -- Swagger adds it)
+and "Try it out" will send it on every subsequent request from that tab.
+
 ---
 
 ## Known scope boundaries

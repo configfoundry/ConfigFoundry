@@ -132,7 +132,6 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => {
                   setMfaToken(null)
-                  setCode(null as unknown as string)
                   setCode('')
                   setError(null)
                 }}

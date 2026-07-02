@@ -1,14 +1,16 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '@/lib/api'
-import type { TagDef } from '@/lib/types'
+import { api, ApiError } from '@/lib/api'
+import type { SessionInfo, TagDef } from '@/lib/types'
 import { LoadingRow } from '@/components/ui/Spinner'
 import { ErrorBanner } from '@/components/ui/ErrorBanner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
+import { useAuth } from '@/providers/AuthProvider'
 
 // ---------------------------------------------------------------------------
 // Tag modal
@@ -415,15 +417,352 @@ function ListsSection() {
 }
 
 // ---------------------------------------------------------------------------
+// Security tab: change password, MFA enrollment, active sessions
+// ---------------------------------------------------------------------------
+function ChangePasswordCard() {
+  const { toast } = useToast()
+  const [oldPw, setOldPw] = useState('')
+  const [newPw, setNewPw] = useState('')
+  const [confirmPw, setConfirmPw] = useState('')
+
+  const mut = useMutation({
+    mutationFn: () => api.auth.changePassword(oldPw, newPw),
+    onSuccess: () => {
+      toast('Password changed', 'success')
+      setOldPw('')
+      setNewPw('')
+      setConfirmPw('')
+    },
+    onError: (e) => toast(e instanceof ApiError ? e.message : 'Failed to change password', 'error'),
+  })
+
+  const mismatch = newPw.length > 0 && confirmPw.length > 0 && newPw !== confirmPw
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <strong>Change password</strong>
+      </div>
+      <div className="card-body">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 360 }}>
+          <div className="field">
+            <label className="field-label">Current password</label>
+            <input
+              className="input"
+              type="password"
+              autoComplete="current-password"
+              value={oldPw}
+              onChange={(e) => setOldPw(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label className="field-label">New password</label>
+            <input
+              className="input"
+              type="password"
+              autoComplete="new-password"
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label className="field-label">Confirm new password</label>
+            <input
+              className="input"
+              type="password"
+              autoComplete="new-password"
+              value={confirmPw}
+              onChange={(e) => setConfirmPw(e.target.value)}
+            />
+            {mismatch && <span className="text-faint text-sm" style={{ color: 'var(--danger)' }}>Passwords do not match</span>}
+          </div>
+          <div>
+            <button
+              className="btn btn-primary btn-sm"
+              disabled={!oldPw || !newPw || mismatch || mut.isPending}
+              onClick={() => mut.mutate()}
+            >
+              {mut.isPending ? 'Saving…' : 'Update password'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MfaCard() {
+  const { toast } = useToast()
+  const { user, refreshUser } = useAuth()
+  const [enrolling, setEnrolling] = useState(false)
+  const [secret, setSecret] = useState<string | null>(null)
+  const [provisioningUri, setProvisioningUri] = useState<string | null>(null)
+  const [code, setCode] = useState('')
+  const [backupCodes, setBackupCodes] = useState<string[] | null>(null)
+
+  const beginMut = useMutation({
+    mutationFn: () => api.auth.mfaEnrollBegin(),
+    onSuccess: (r) => {
+      setSecret(r.secret)
+      setProvisioningUri(r.provisioning_uri)
+      setEnrolling(true)
+    },
+    onError: (e) => toast(e instanceof ApiError ? e.message : 'Failed to start MFA enrollment', 'error'),
+  })
+
+  const confirmMut = useMutation({
+    mutationFn: () => api.auth.mfaEnrollConfirm(secret!, code.trim()),
+    onSuccess: (r) => {
+      setBackupCodes(r.backup_codes)
+      setEnrolling(false)
+      setCode('')
+      refreshUser()
+      toast('MFA enabled', 'success')
+    },
+    onError: (e) => toast(e instanceof ApiError ? e.message : 'Invalid code', 'error'),
+  })
+
+  const disableMut = useMutation({
+    mutationFn: () => api.auth.mfaDisable(),
+    onSuccess: () => {
+      refreshUser()
+      toast('MFA disabled', 'success')
+    },
+    onError: (e) => toast(e instanceof ApiError ? e.message : 'Failed to disable MFA', 'error'),
+  })
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <strong>Two-factor authentication</strong>
+        {user?.mfa_enabled ? (
+          <span className="badge badge-success">Enabled</span>
+        ) : (
+          <span className="badge badge-neutral">Disabled</span>
+        )}
+      </div>
+      <div className="card-body">
+        {backupCodes ? (
+          <div>
+            <div className="banner banner-warn" style={{ marginBottom: 12 }}>
+              Save these backup codes now — each can be used once if you lose access to your
+              authenticator app. They will not be shown again.
+            </div>
+            <div
+              className="text-mono"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 6,
+                background: 'var(--bg-raised)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)',
+                padding: 12,
+                marginBottom: 12,
+              }}
+            >
+              {backupCodes.map((c) => (
+                <span key={c}>{c}</span>
+              ))}
+            </div>
+            <button className="btn btn-secondary btn-sm" onClick={() => setBackupCodes(null)}>
+              Done
+            </button>
+          </div>
+        ) : user?.mfa_enabled ? (
+          <div>
+            <p className="text-dim text-sm" style={{ marginTop: 0 }}>
+              Two-factor authentication is protecting this account.
+            </p>
+            <button
+              className="btn btn-danger btn-sm"
+              disabled={disableMut.isPending}
+              onClick={() => {
+                if (confirm('Disable two-factor authentication for your account?')) disableMut.mutate()
+              }}
+            >
+              {disableMut.isPending ? 'Disabling…' : 'Disable MFA'}
+            </button>
+          </div>
+        ) : !enrolling ? (
+          <div>
+            <p className="text-dim text-sm" style={{ marginTop: 0 }}>
+              Add an authenticator app (Google Authenticator, 1Password, Authy) as a second
+              factor for sign-in.
+            </p>
+            <button className="btn btn-primary btn-sm" disabled={beginMut.isPending} onClick={() => beginMut.mutate()}>
+              {beginMut.isPending ? 'Starting…' : 'Enroll MFA'}
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 420 }}>
+            <p className="text-dim text-sm" style={{ margin: 0 }}>
+              Add this key to your authenticator app manually, or paste the URI below into an
+              app that supports it.
+            </p>
+            <div className="field">
+              <label className="field-label">Secret key</label>
+              <input className="input text-mono" readOnly value={secret ?? ''} onClick={(e) => e.currentTarget.select()} />
+            </div>
+            <div className="field">
+              <label className="field-label">Setup URI</label>
+              <input className="input text-mono" readOnly value={provisioningUri ?? ''} onClick={(e) => e.currentTarget.select()} />
+            </div>
+            <div className="field">
+              <label className="field-label">Enter the 6-digit code to confirm</label>
+              <input
+                className="input"
+                inputMode="numeric"
+                autoFocus
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                className="btn btn-primary btn-sm"
+                disabled={!code || confirmMut.isPending}
+                onClick={() => confirmMut.mutate()}
+              >
+                {confirmMut.isPending ? 'Confirming…' : 'Confirm'}
+              </button>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  setEnrolling(false)
+                  setSecret(null)
+                  setProvisioningUri(null)
+                  setCode('')
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function fmtEpochSeconds(ts: number) {
+  try {
+    return new Date(ts * 1000).toLocaleString(undefined, {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    })
+  } catch {
+    return String(ts)
+  }
+}
+
+function SessionsCard() {
+  const { toast } = useToast()
+  const qc = useQueryClient()
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['auth-sessions'],
+    queryFn: () => api.auth.listSessions(),
+  })
+
+  const revokeMut = useMutation({
+    mutationFn: (id: string) => api.auth.revokeSession(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['auth-sessions'] })
+      toast('Session revoked', 'success')
+    },
+    onError: (e) => toast(e instanceof ApiError ? e.message : 'Failed to revoke session', 'error'),
+  })
+
+  const sessions: SessionInfo[] = data?.sessions ?? []
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <strong>Active sessions</strong>
+      </div>
+      <div className="card-body">
+        {isLoading ? (
+          <LoadingRow />
+        ) : error ? (
+          <ErrorBanner error={error as Error} onRetry={refetch} />
+        ) : sessions.length === 0 ? (
+          <span className="text-faint text-sm">No active sessions</span>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Issued</th>
+                  <th>Expires</th>
+                  <th>IP address</th>
+                  <th>User agent</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {sessions.map((s) => (
+                  <tr key={s.id}>
+                    <td>{fmtEpochSeconds(s.issued_at)}</td>
+                    <td>{fmtEpochSeconds(s.expires_at)}</td>
+                    <td className="mono">{s.source_ip ?? '—'}</td>
+                    <td className="text-dim" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {s.user_agent ?? '—'}
+                    </td>
+                    <td className="actions">
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        disabled={revokeMut.isPending}
+                        onClick={() => revokeMut.mutate(s.id)}
+                      >
+                        Revoke
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function SecuritySection() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <ChangePasswordCard />
+      <MfaCard />
+      <SessionsCard />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 export default function SettingsPage() {
-  const [tab, setTab] = useState<'tags' | 'lists'>('tags')
+  return (
+    <Suspense fallback={<LoadingRow />}>
+      <SettingsPageInner />
+    </Suspense>
+  )
+}
+
+function SettingsPageInner() {
+  const searchParams = useSearchParams()
+  const [tab, setTab] = useState<'tags' | 'lists' | 'security'>('tags')
+
+  useEffect(() => {
+    const t = searchParams.get('tab')
+    if (t === 'security' || t === 'tags' || t === 'lists') setTab(t)
+  }, [searchParams])
 
   return (
     <div>
       <div className="tab-list">
-        {([['tags', 'Tag Definitions'], ['lists', 'Managed Lists']] as const).map(([id, label]) => (
+        {([['tags', 'Tag Definitions'], ['lists', 'Managed Lists'], ['security', 'Security']] as const).map(([id, label]) => (
           <button
             key={id}
             className={`tab-btn${tab === id ? ' active' : ''}`}
@@ -436,6 +775,7 @@ export default function SettingsPage() {
 
       {tab === 'tags' && <TagsSection />}
       {tab === 'lists' && <ListsSection />}
+      {tab === 'security' && <SecuritySection />}
     </div>
   )
 }
