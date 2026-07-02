@@ -161,6 +161,53 @@ jobs:
           sudo iptables -A OUTPUT -p tcp --dport 443 -d registry.npmjs.org -j REJECT || true
           python3 scripts/validate_airgap.py
           ./install_offline.sh
+      - name: Debug offline bundle
+        working-directory: ${{ env.BUNDLE_DIR }}
+        run: |
+          echo "=============================="
+          echo "Current directory"
+          pwd
+
+          echo
+          echo "=============================="
+          echo "Root contents"
+          ls -la
+
+          echo
+          echo "=============================="
+          echo "Top-level directories"
+          find . -maxdepth 1 -type d | sort
+
+          echo
+          echo "=============================="
+          echo "schemas"
+          ls -la schemas || true
+
+          echo
+          echo "=============================="
+          echo "formats"
+          ls -la formats || true
+
+          echo
+          echo "=============================="
+          echo "Python path"
+          .venv/bin/python3 - <<'PY'
+          import os
+          import sys
+
+          print("cwd:", os.getcwd())
+          print()
+
+          print("sys.path:")
+          for p in sys.path:
+              print(" ", p)
+
+          print()
+
+          print("exists schemas:", os.path.isdir("schemas"))
+          print("exists formats:", os.path.isdir("formats"))
+          print("exists app.py:", os.path.exists("app.py"))
+          PY
       - name: Verify the app actually boots
         working-directory: ${{ env.BUNDLE_DIR }}
         run: |
