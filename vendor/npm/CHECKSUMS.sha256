@@ -1,9 +1,0 @@
-147093bfcbd0d2d966965acd83354452e1fa523a0a6f4ab490c9f3ecc58f1663  swc-binaries/darwin-arm64/./README.md
-0ed6f0d94be3b2a57df34563d60b814c1a00906afcbaa98d8f23a876d516cb69  swc-binaries/darwin-arm64/./next-swc.darwin-arm64.node
-32014a59df42efe1fb17650cbba183d60f48918590e5083268b640be210635b1  swc-binaries/darwin-arm64/./package.json
-0e11596ccb496c263c1092ea17780fc8aa3804580a21a2cdab625154bf8c5e53  swc-binaries/linux-arm64-gnu/./README.md
-a12ffb6ca038199460d30a1a2b7b4bcd9be45620acb08a30c899c8b26325bad9  swc-binaries/linux-arm64-gnu/./package.json
-1a6c44a49c41c88e65acb8843cabb46640dc0193cde3ef10e745667d383eb5b1  swc-binaries/linux-arm64-gnu/./next-swc.linux-arm64-gnu.node
-b0883d513f6f3e46a420ef86dd45329ba97439a75dd1a54b108bce401588512d  swc-binaries/linux-x64-gnu/./next-swc.linux-x64-gnu.node
-51237b67abf6f129819a5159e50722e3cd6e7cd172544ee31ca57ae7bc9b2eeb  swc-binaries/linux-x64-gnu/./README.md
-3482ea31ae842f0f09ecf6ec8ba715f2b5d9fd288f966b827b5f91bc9384f189  swc-binaries/linux-x64-gnu/./package.json
