@@ -2,10 +2,12 @@
 
 ## Liveness / readiness
 
-ConfigFoundry does not currently expose a dedicated `/health` or
-`/healthz` endpoint — this is a known gap, tracked in
-[Roadmap](./roadmap.md), not a silent omission. Until it lands, use one
-of these as a practical substitute:
+> [!NOTE]
+> ConfigFoundry does not currently expose a dedicated `/health` or
+> `/healthz` endpoint — this is a known gap, tracked in
+> [Roadmap](./roadmap.md), not a silent omission.
+
+Until it lands, use one of these as a practical substitute:
 
 - **`GET /openapi.json`** — cheapest option. No authentication required,
   returns quickly, and only succeeds if the FastAPI app is fully booted
@@ -75,7 +77,8 @@ metrics. See [RBAC](./rbac.md) for which role (Auditor, or any role with
 
 ## Planned
 
-A `/health` (liveness) and `/ready` (readiness, including a live
-`StorageProvider.health_check()` call) pair, plus a Prometheus-compatible
-`/metrics` endpoint, are tracked in [Roadmap](./roadmap.md) rather than
-promised here as already shipped.
+> [!NOTE]
+> A `/health` (liveness) and `/ready` (readiness, including a live
+> `StorageProvider.health_check()` call) pair, plus a
+> Prometheus-compatible `/metrics` endpoint, are tracked in
+> [Roadmap](./roadmap.md) rather than promised here as already shipped.

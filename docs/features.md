@@ -62,6 +62,7 @@ management, tags, the Network Tree, and the dashboard.
 
 ## Network Tree
 
+> [!WARNING]
 > **Known gap, stated plainly:** the Network Tree described below was
 > built for ConfigFoundry's original vanilla-JS frontend (`static/`) and
 > has not yet been ported to the current Next.js frontend
@@ -107,7 +108,7 @@ place.
 - **Dark and light mode** — toggle in the top bar, remembered in your
   browser, applied before the page even paints so there's no flash of
   the wrong theme. The same toggle and preference apply to the
-  [in-app documentation viewer](/docs/) you're reading this in.
+  [in-app documentation viewer](/documentation/) you're reading this in.
 - **Audit log + YAML history** — every change is attributed to whoever
   made it, and every generation is saved so you can look back at what
   was produced and when. See [API Reference](./api.md) and
@@ -134,7 +135,9 @@ place.
 - **Single shared database, ordinary write semantics.** With SQLite (the
   default), two people editing the same record at the same moment is
   last-write-wins — there's no optimistic-locking or conflict warning.
-  For the team-sized usage this was built for, that hasn't been a
-  problem in practice, but it isn't battle-tested under heavy concurrent
-  write load; move to PostgreSQL (see [Storage](./storage.md)) if that
-  matters for your deployment.
+
+> [!CAUTION]
+> For the team-sized usage this was built for, last-write-wins hasn't
+> been a problem in practice, but it isn't battle-tested under heavy
+> concurrent write load. Move to PostgreSQL (see [Storage](./storage.md))
+> if that matters for your deployment.

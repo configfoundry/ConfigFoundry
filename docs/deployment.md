@@ -14,17 +14,16 @@ built-in load balancer, message queue, or worker pool — the intended
 deployment is one instance per team/environment, run behind a reverse
 proxy for TLS termination:
 
-```
-Internet / internal network
-        │
-        ▼
-Reverse proxy (nginx / Caddy / your enterprise LB)  — TLS termination
-        │  HTTP, localhost or internal network only
-        ▼
-ConfigFoundry (python3 server.py / run_offline.sh)  — port 8420 default
-        │
-        ▼
-Database (SQLite file, or PostgreSQL/MySQL/SQL Server — see Storage)
+```mermaid
+flowchart TD
+    Internet["Internet / internal network"]
+    Proxy["Reverse proxy (nginx / Caddy / your enterprise LB)<br/>TLS termination"]
+    App["ConfigFoundry (python3 server.py / run_offline.sh)<br/>port 8420 default"]
+    DB["Database<br/>SQLite file, or PostgreSQL/MySQL/SQL Server"]
+
+    Internet --> Proxy
+    Proxy -->|"HTTP, localhost or internal network only"| App
+    App --> DB
 ```
 
 ## Reverse proxy
@@ -84,9 +83,10 @@ WantedBy=multi-user.target
 sudo systemctl enable --now configfoundry
 ```
 
-Prefer an environment file (`EnvironmentFile=/etc/configfoundry/env`)
-over inline `Environment=` lines for secrets, with restrictive file
-permissions (`chmod 600`).
+> [!TIP]
+> Prefer an environment file (`EnvironmentFile=/etc/configfoundry/env`)
+> over inline `Environment=` lines for secrets, with restrictive file
+> permissions (`chmod 600`).
 
 ## Database choice at this stage
 
@@ -107,9 +107,11 @@ changes). For most deployments — an internal tool used during business
 hours — a few seconds of downtime during a planned restart is
 acceptable; if it isn't for your environment, put a second instance
 behind the reverse proxy pointed at the same PostgreSQL database and
-drain traffic manually during upgrades. This isn't validated
-end-to-end for concurrent multi-instance writes against SQLite —
-use PostgreSQL if you go this route.
+drain traffic manually during upgrades.
+
+> [!CAUTION]
+> Multi-instance writes are not validated end-to-end against SQLite —
+> use PostgreSQL if you go this route.
 
 ## Firewall / network requirements
 

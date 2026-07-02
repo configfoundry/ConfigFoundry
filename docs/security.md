@@ -67,10 +67,12 @@ reverse proxy — see [Deployment](./deployment.md).
 ## Rate limiting
 
 Per-IP, in-memory, stricter on `/auth/login` and `/auth/mfa/*`
-(`CONFIGFOUNDRY_AUTH_RATE_LIMIT_LOGIN`, default `10/60`). Known
-limitation: this is per-process, so a multi-instance deployment enforces
-independent limits per instance rather than one shared global limit —
-see [Authentication § Known scope boundaries](./authentication.md#known-scope-boundaries).
+(`CONFIGFOUNDRY_AUTH_RATE_LIMIT_LOGIN`, default `10/60`).
+
+> [!NOTE]
+> Known limitation: this is per-process, so a multi-instance deployment
+> enforces independent limits per instance rather than one shared global
+> limit — see [Authentication § Known scope boundaries](./authentication.md#known-scope-boundaries).
 
 ## Audit trail
 
@@ -92,20 +94,24 @@ account exists:
    once, out-of-band, not as a supported CLI command (there isn't one,
    by design, to avoid shipping a built-in backdoor).
 2. Alternatively, delete the database and let ConfigFoundry re-bootstrap
-   on next startup — only viable if you're comfortable losing existing
-   inventory/security data, so this is a last resort, not a first one.
+   on next startup.
 3. For a production deployment, avoid this scenario entirely: always
    have at least two Super Admin or Organization Admin accounts.
 
+> [!WARNING]
+> Step 2 is a last resort, not a first one — deleting the database means
+> losing all existing inventory and security data, with no way back.
+
 ## Known scope boundaries
 
-Restated here from [Authentication](./authentication.md) since they're
-security-relevant: no external IdP/OIDC/SSO integration yet; rate
-limiting is per-process, not distributed; time-based (business-hours)
-access policies are scaffolded but not enforced; multi-tenancy covers
-the security layer but not yet the inventory tables. None of these are
-silently absent — each is called out explicitly so a deployer can decide
-whether it matters for their environment.
+> [!IMPORTANT]
+> Restated here from [Authentication](./authentication.md) since they're
+> security-relevant: no external IdP/OIDC/SSO integration yet; rate
+> limiting is per-process, not distributed; time-based (business-hours)
+> access policies are scaffolded but not enforced; multi-tenancy covers
+> the security layer but not yet the inventory tables. None of these are
+> silently absent — each is called out explicitly so a deployer can
+> decide whether it matters for their environment.
 
 ## Reporting a vulnerability
 

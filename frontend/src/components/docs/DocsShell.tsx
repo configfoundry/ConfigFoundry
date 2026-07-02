@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactElement, type ReactNode } from 'react'
 import type { DocGroup, SearchEntry } from '@/lib/docs'
+import { DocsSearch } from './DocsSearch'
+import { KeyboardShortcutsModal } from './KeyboardShortcutsModal'
 
 // ---------------------------------------------------------------------------
 // Icons (inline SVG, no icon library dependency -- mirrors AppShell.tsx)
@@ -36,12 +38,6 @@ function Icon({ name }: { name: string }) {
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
       </svg>
     ),
-    search: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-        <circle cx="11" cy="11" r="7" />
-        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-    ),
     menu: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
         <line x1="3" y1="6" x2="21" y2="6" />
@@ -58,6 +54,13 @@ function Icon({ name }: { name: string }) {
     app: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
         <polyline points="15 18 9 12 15 6" />
+      </svg>
+    ),
+    help: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9.5 9a2.5 2.5 0 0 1 4.9.75c0 1.5-2 1.75-2.4 2.75" />
+        <circle cx="12" cy="17" r=".5" fill="currentColor" stroke="none" />
       </svg>
     ),
   }
@@ -89,100 +92,7 @@ function useTheme() {
 }
 
 function slugToHref(slug: string) {
-  return `/docs/${slug}/`
-}
-
-// ---------------------------------------------------------------------------
-// Search box -- client-side, filters the build-time search index by
-// title / heading / excerpt substring match. No network request, no
-// external search service: works fully offline. See docs/airgap.md.
-// ---------------------------------------------------------------------------
-function DocsSearch({ index }: { index: SearchEntry[] }) {
-  const [query, setQuery] = useState('')
-  const [open, setOpen] = useState(false)
-  const boxRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false)
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false)
-      if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        const el = boxRef.current?.querySelector('input') as HTMLInputElement | null
-        el?.focus()
-        setOpen(true)
-      }
-    }
-    document.addEventListener('mousedown', onClickOutside)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onClickOutside)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [])
-
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return []
-    const scored = index
-      .map((entry) => {
-        const title = entry.title.toLowerCase()
-        const headings = entry.headings.join(' ').toLowerCase()
-        const excerpt = entry.excerpt.toLowerCase()
-        let score = 0
-        if (title.includes(q)) score += title.startsWith(q) ? 100 : 50
-        if (headings.includes(q)) score += 20
-        if (excerpt.includes(q)) score += 5
-        return { entry, score }
-      })
-      .filter((r) => r.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 8)
-    return scored.map((r) => r.entry)
-  }, [query, index])
-
-  return (
-    <div className="docs-search" ref={boxRef}>
-      <div className="search-wrap">
-        <Icon name="search" />
-        <input
-          className="input"
-          placeholder="Search docs…  (Ctrl+K)"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value)
-            setOpen(true)
-          }}
-          onFocus={() => setOpen(true)}
-        />
-      </div>
-      {open && query.trim() && (
-        <div className="docs-search-results card">
-          {results.length === 0 ? (
-            <div className="docs-search-empty">No results for &ldquo;{query}&rdquo;</div>
-          ) : (
-            results.map((r) => (
-              <Link
-                key={r.slug}
-                href={slugToHref(r.slug)}
-                className="docs-search-result"
-                onClick={() => {
-                  setOpen(false)
-                  setQuery('')
-                }}
-              >
-                <div className="docs-search-result-title">{r.title}</div>
-                <div className="docs-search-result-group">{r.group}</div>
-                {r.excerpt && <div className="docs-search-result-excerpt">{r.excerpt}</div>}
-              </Link>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  )
+  return `/documentation/${slug}/`
 }
 
 // ---------------------------------------------------------------------------
@@ -191,24 +101,47 @@ function DocsSearch({ index }: { index: SearchEntry[] }) {
 export function DocsShell({
   groups,
   searchIndex,
+  version,
   children,
 }: {
   groups: DocGroup[]
   searchIndex: SearchEntry[]
+  version: string
   children: ReactNode
 }) {
   const pathname = usePathname()
   const { theme, toggleTheme } = useTheme()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
 
   useEffect(() => {
     setMobileNavOpen(false)
   }, [pathname])
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const typing =
+        document.activeElement instanceof HTMLElement &&
+        ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)
+      if (e.key === '?' && !typing) {
+        e.preventDefault()
+        setShortcutsOpen((v) => !v)
+      } else if (e.key === 'Escape') {
+        setShortcutsOpen(false)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
   const isActive = (slug: string) => pathname === slugToHref(slug)
 
   return (
     <div className="docs-shell" data-nav-open={mobileNavOpen ? 'true' : 'false'}>
+      <a href="#docs-main-content" className="docs-skip-link">
+        Skip to content
+      </a>
+
       <header className="docs-topbar">
         <button
           className="btn btn-ghost btn-icon docs-nav-toggle"
@@ -218,7 +151,7 @@ export function DocsShell({
           <Icon name={mobileNavOpen ? 'close' : 'menu'} />
         </button>
 
-        <Link href="/docs/" className="docs-brand">
+        <Link href="/documentation/" className="docs-brand">
           <span style={{ color: 'var(--primary)' }}>
             <Icon name="logo" />
           </span>
@@ -226,10 +159,13 @@ export function DocsShell({
             Config<span className="accent">Foundry</span>
           </span>
           <span className="badge badge-neutral docs-badge">Docs</span>
+          <span className="docs-version-badge" title="Documentation version">
+            v{version}
+          </span>
         </Link>
 
         <div className="docs-topbar-search">
-          <DocsSearch index={searchIndex} />
+          <DocsSearch index={searchIndex} variant="compact" />
         </div>
 
         <div className="docs-topbar-actions">
@@ -237,6 +173,13 @@ export function DocsShell({
             <Icon name="app" />
             <span>Open app</span>
           </Link>
+          <button
+            className="btn btn-ghost btn-icon"
+            onClick={() => setShortcutsOpen(true)}
+            title="Keyboard shortcuts (?)"
+          >
+            <Icon name="help" />
+          </button>
           <button
             className="btn btn-ghost btn-icon"
             onClick={toggleTheme}
@@ -273,8 +216,12 @@ export function DocsShell({
           </div>
         </aside>
 
-        <main className="docs-main">{children}</main>
+        <main className="docs-main" id="docs-main-content">
+          {children}
+        </main>
       </div>
+
+      <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
   )
 }

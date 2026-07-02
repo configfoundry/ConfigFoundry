@@ -27,6 +27,8 @@ Environment variables (`CONFIGFOUNDRY_DB_*`) or a YAML config file — see
 [Configuration](./configuration.md) for the full reference. Quick
 version:
 
+::: tabs
+@tab Environment variables
 ```bash
 # SQLite (default) — nothing to set
 python3 server.py
@@ -36,9 +38,7 @@ export CONFIGFOUNDRY_DB_PROVIDER=postgresql
 export CONFIGFOUNDRY_DB_CONNECTION_URL="postgresql+psycopg2://user:pass@db-host:5432/configfoundry"
 python3 server.py
 ```
-
-or via YAML:
-
+@tab YAML config
 ```yaml
 database:
   provider: postgresql
@@ -46,6 +46,7 @@ database:
   pool_size: 10
   max_overflow: 20
 ```
+:::
 
 ## Health checks
 
@@ -61,12 +62,15 @@ for how that works and how to write a new one.
 
 ## Backups
 
-SQLite: back up the single file (`db/configfoundry.db`) directly — a
-plain file copy is a valid backup as long as no write is in progress;
-for a live server, use `sqlite3 .backup` or briefly stop the process.
 PostgreSQL/MySQL/SQL Server: use your database's standard backup
 tooling (`pg_dump`, `mysqldump`, etc.) — ConfigFoundry doesn't wrap or
 replace these, it just needs a connection string on restore.
+
+> [!TIP]
+> SQLite: back up the single file (`db/configfoundry.db`) directly — a
+> plain file copy is a valid backup **as long as no write is in
+> progress**. For a live server, use `sqlite3 .backup` or briefly stop
+> the process instead of copying the file blind.
 
 `upgrade_offline.sh` automatically backs up the SQLite database before
 applying an upgrade — see [Upgrade Guide](./upgrade.md).

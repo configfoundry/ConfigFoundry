@@ -3,22 +3,31 @@
 # single self-contained archive that installs and runs on a machine with
 # ZERO internet access using only its own contents.
 #
-# Run this on a machine WITH internet access (or at least with the
-# vendor/ bundles already freshly built) -- it does not itself download
-# anything; it only assembles what's already in the working tree.
+# Run this on a machine WITH internet access -- it's the one piece of
+# the whole offline pipeline that's allowed to need it (see
+# docs/release-process.md and docs/airgap.md#repository-vs-release-artifact
+# for why the git repository itself stays free of these large generated
+# artifacts while the release bundle carries all of them).
 #
 # What this does, in order:
 #   1. Determine the release version from frontend/package.json.
-#   2. Build the frontend static export fresh (frontend/out/), so the
+#   2. Ensure vendor/python/ exists (it's normally already committed --
+#      small and kept in git on purpose -- but regenerate it if missing).
+#   3. Ensure vendor/npm/ (swc-binaries/ + node_modules.tar.gz) exists,
+#      regenerating it via scripts/build_npm_offline_vendor.sh if not --
+#      this is the one step that needs internet access AND a full
+#      `npm ci`, which is why it's never committed to git and always
+#      built fresh here (or reused if already present from a prior run).
+#   4. Build the frontend static export fresh (frontend/out/), so the
 #      bundle never ships a stale build.
-#   3. Stage a clean copy of everything an offline install needs:
+#   5. Stage a clean copy of everything an offline install needs:
 #      application source, the built frontend, vendor/python/,
 #      vendor/npm/, docs/, every install/run/upgrade script, the air-gap
 #      validator, LICENSE, and a VERSION file -- explicitly excluding
 #      dev-only cruft (.git, __pycache__, .venv, node_modules, .next).
-#   4. Run scripts/validate_airgap.py against the STAGED copy. A bundle
+#   6. Run scripts/validate_airgap.py against the STAGED copy. A bundle
 #      that would fail air-gap validation is never produced.
-#   5. Zip the staged directory and write a top-level CHECKSUMS.sha256
+#   7. Zip the staged directory and write a top-level CHECKSUMS.sha256
 #      covering every file inside, plus a standalone .sha256 of the zip
 #      itself for post-transfer integrity verification.
 #
@@ -26,7 +35,7 @@
 # one step of, and docs/airgap.md for what the bundle guarantees.
 #
 # Usage:
-#   ./scripts/build_release_bundle.sh [--skip-frontend-build] [--skip-validation]
+#   ./scripts/build_release_bundle.sh [--skip-frontend-build] [--skip-npm-vendor] [--skip-validation]
 
 set -euo pipefail
 
@@ -40,13 +49,15 @@ warn()  { echo -e "${YELLOW}!${RESET} $*"; }
 fail()  { echo -e "${RED}✗ $*${RESET}" >&2; exit 1; }
 
 SKIP_FRONTEND_BUILD=0
+SKIP_NPM_VENDOR=0
 SKIP_VALIDATION=0
 for arg in "$@"; do
   case "$arg" in
     --skip-frontend-build) SKIP_FRONTEND_BUILD=1 ;;
+    --skip-npm-vendor) SKIP_NPM_VENDOR=1 ;;
     --skip-validation) SKIP_VALIDATION=1 ;;
     -h|--help)
-      sed -n '2,25p' "$0"; exit 0 ;;
+      sed -n '2,33p' "$0"; exit 0 ;;
     *) fail "Unknown argument: $arg" ;;
   esac
 done
@@ -66,7 +77,34 @@ BUNDLE_NAME="ConfigFoundry-Offline-v${VERSION}"
 info "Building release bundle: ${BUNDLE_NAME}"
 
 # ---------------------------------------------------------------------
-# 2. Build the frontend fresh
+# 2. Ensure the Python wheelhouse exists (normally already committed)
+# ---------------------------------------------------------------------
+if [[ -d vendor/python ]] && [[ -n "$(ls -A vendor/python/*.whl 2>/dev/null)" ]]; then
+  ok "vendor/python/ already present ($(ls vendor/python/*.whl | wc -l | tr -d ' ') wheels)"
+else
+  info "vendor/python/ missing or empty -- building it now (needs internet access)..."
+  ./scripts/build_python_wheelhouse.sh
+  ok "vendor/python/ built"
+fi
+
+# ---------------------------------------------------------------------
+# 3. Ensure the npm offline vendor payload exists -- this is the one
+#    piece never committed to git (see vendor/npm/README.md), so a
+#    release build always needs to produce it fresh unless a prior run
+#    already left one in the working tree.
+# ---------------------------------------------------------------------
+if [[ "$SKIP_NPM_VENDOR" -eq 1 ]]; then
+  warn "Skipping npm vendor build (--skip-npm-vendor) -- using vendor/npm/ as-is, if present."
+elif [[ -d vendor/npm/swc-binaries ]] && [[ -f vendor/npm/node_modules.tar.gz ]]; then
+  ok "vendor/npm/ already present -- reusing (delete it first to force a rebuild)"
+else
+  info "vendor/npm/ missing -- building it now (needs internet access and a full npm ci)..."
+  ./scripts/build_npm_offline_vendor.sh
+  ok "vendor/npm/ built"
+fi
+
+# ---------------------------------------------------------------------
+# 4. Build the frontend fresh
 # ---------------------------------------------------------------------
 if [[ "$SKIP_FRONTEND_BUILD" -eq 1 ]]; then
   warn "Skipping frontend build (--skip-frontend-build) -- using existing frontend/out/ as-is."
@@ -82,7 +120,7 @@ else
 fi
 
 # ---------------------------------------------------------------------
-# 3. Stage the bundle contents
+# 5. Stage the bundle contents
 # ---------------------------------------------------------------------
 STAGE_ROOT="$(mktemp -d)"
 STAGE_DIR="${STAGE_ROOT}/${BUNDLE_NAME}"
@@ -144,7 +182,7 @@ echo "$VERSION" > "$STAGE_DIR/VERSION"
 ok "Bundle staged at $(basename "$STAGE_DIR")/ ($(du -sh "$STAGE_DIR" | cut -f1))"
 
 # ---------------------------------------------------------------------
-# 4. Validate the staged bundle before packaging it
+# 6. Validate the staged bundle before packaging it
 # ---------------------------------------------------------------------
 if [[ "$SKIP_VALIDATION" -eq 1 ]]; then
   warn "Skipping air-gap validation (--skip-validation). Do not publish an unvalidated bundle."
@@ -157,7 +195,7 @@ else
 fi
 
 # ---------------------------------------------------------------------
-# 5. Checksum every staged file, then zip
+# 7. Checksum every staged file, then zip
 # ---------------------------------------------------------------------
 info "Writing CHECKSUMS.sha256 for every file in the bundle..."
 (

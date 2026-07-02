@@ -49,21 +49,23 @@ the only ones you need to think about before going live.
 | `CONFIGFOUNDRY_AUTH_BOOTSTRAP_EMAIL` | `admin@configfoundry.local` | Initial Super Admin email (applied once, at first migration) |
 | `CONFIGFOUNDRY_AUTH_BOOTSTRAP_PASSWORD` | randomly generated, printed once | Initial Super Admin password |
 
-**Set this in production**, at minimum:
+> [!IMPORTANT]
+> **Set this in production**, at minimum:
+>
+> ```bash
+> export CONFIGFOUNDRY_AUTH_JWT_SECRET="$(openssl rand -base64 48)"
+> export CONFIGFOUNDRY_AUTH_SECRET_ENC_KEY="$(openssl rand -base64 32)"
+> export CONFIGFOUNDRY_AUTH_BOOTSTRAP_EMAIL="admin@yourcompany.example"
+> export CONFIGFOUNDRY_AUTH_BOOTSTRAP_PASSWORD="$(openssl rand -base64 24)"
+> export CONFIGFOUNDRY_AUTH_CORS_ORIGINS="https://configfoundry.yourcompany.example"
+> ```
 
-```bash
-export CONFIGFOUNDRY_AUTH_JWT_SECRET="$(openssl rand -base64 48)"
-export CONFIGFOUNDRY_AUTH_SECRET_ENC_KEY="$(openssl rand -base64 32)"
-export CONFIGFOUNDRY_AUTH_BOOTSTRAP_EMAIL="admin@yourcompany.example"
-export CONFIGFOUNDRY_AUTH_BOOTSTRAP_PASSWORD="$(openssl rand -base64 24)"
-export CONFIGFOUNDRY_AUTH_CORS_ORIGINS="https://configfoundry.yourcompany.example"
-```
-
-Generate both secrets once, store them in your secrets manager, and reuse
-the same values on every restart — rotating `JWT_SECRET` deliberately
-logs everyone out (sometimes exactly what you want, e.g. after a suspected
-compromise); rotating `SECRET_ENC_KEY` makes existing MFA enrollments
-undecryptable, so treat it as a one-way door.
+> [!CAUTION]
+> Generate both secrets once, store them in your secrets manager, and
+> reuse the same values on every restart — rotating `JWT_SECRET`
+> deliberately logs everyone out (sometimes exactly what you want, e.g.
+> after a suspected compromise); rotating `SECRET_ENC_KEY` makes existing
+> MFA enrollments undecryptable, so treat it as a one-way door.
 
 ## Logging
 

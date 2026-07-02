@@ -9,9 +9,19 @@ production, air-gapped, or non-SQLite deployments, see
 ## Prerequisites
 
 - Python 3.10 or newer
-- Node.js 18+ (only if you want to rebuild the frontend — a pre-built
-  `frontend/out/` is included, so most people can skip installing Node
-  entirely)
+- Node.js 18+ — only if you're building the Next.js frontend from a
+  source checkout. If you'd rather skip Node entirely, grab a
+  [release bundle](./installation.md#method-1-release-bundle-recommended-for-offline--air-gapped)
+  instead — it ships a prebuilt `frontend/out/` and needs neither Node
+  nor internet access.
+
+> [!NOTE]
+> Running `python3 server.py` from a bare source checkout without
+> building the frontend still works — ConfigFoundry falls back to
+> serving its legacy static UI instead of the Next.js one. It's a fine
+> way to try the API and backend immediately; run `make build` (or
+> `make dev`) once you want the current frontend. See
+> [Installation](./installation.md) for every method side by side.
 
 ## 1. Install dependencies
 

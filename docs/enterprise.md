@@ -24,8 +24,8 @@ draws from).
 **Network**
 - [ ] TLS terminated at a reverse proxy (see [Deployment](./deployment.md)).
 - [ ] `CONFIGFOUNDRY_AUTH_TRUSTED_PROXIES` set to exactly the proxy's
-      IP/CIDR — an unset or overly broad value lets a client spoof its
-      own `X-Forwarded-For` and bypass the Access Policy Engine.
+      IP/CIDR. **An unset or overly broad value lets a client spoof its
+      own `X-Forwarded-For` and bypass the Access Policy Engine.**
 - [ ] `CONFIGFOUNDRY_AUTH_CORS_ORIGINS` set to the exact origin the
       frontend is served from, if cross-origin API access is needed at
       all (same-origin deployments — the default — need no CORS
@@ -77,15 +77,18 @@ draws from).
 
 The security layer (users, roles, permissions, API keys, IP policies,
 audit log) is fully organization-scoped and ready for multiple tenants
-on one instance. The original inventory tables (devices, bandwidth,
-subnets, tags, lists, history) are **not yet** retrofitted with
-per-organization scoping — they remain effectively single-tenant, scoped
-to one seeded default organization. If your enterprise deployment needs
-hard multi-tenant separation of inventory data itself (not just of who
-can log in), run separate instances per tenant for now rather than
-relying on organization boundaries to isolate inventory records. See
-[Authentication § Known scope boundaries](./authentication.md#known-scope-boundaries)
-and [Roadmap](./roadmap.md).
+on one instance.
+
+> [!IMPORTANT]
+> The original inventory tables (devices, bandwidth, subnets, tags,
+> lists, history) are **not yet** retrofitted with per-organization
+> scoping — they remain effectively single-tenant, scoped to one seeded
+> default organization. If your enterprise deployment needs hard
+> multi-tenant separation of inventory data itself (not just of who can
+> log in), run separate instances per tenant for now rather than relying
+> on organization boundaries to isolate inventory records. See
+> [Authentication § Known scope boundaries](./authentication.md#known-scope-boundaries)
+> and [Roadmap](./roadmap.md).
 
 ## Compliance mapping
 

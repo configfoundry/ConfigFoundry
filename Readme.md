@@ -91,6 +91,12 @@ diagram, request lifecycle, and module layout:
 
 ## Quick start
 
+The git repository is source only — no prebuilt frontend, no vendored
+npm packages — which is what keeps `git clone` lightweight. Two ways to
+run it, depending on what you have:
+
+**From source (needs Python; Node only if you want the current UI):**
+
 ```bash
 git clone https://github.com/shivamsancc/ConfigFoundry.git
 cd ConfigFoundry
@@ -98,31 +104,42 @@ pip install -r requirements.txt
 python3 server.py
 ```
 
-Opens `http://localhost:8420/` automatically, creates `db/configfoundry.db`,
-and prints the bootstrap Super Admin's credentials to the console on first
-startup. Full walkthrough: [docs/getting-started.md](docs/getting-started.md).
-
-Rebuilding the frontend from source (optional — a pre-built
-`frontend/out/` ships in the repo):
+This works immediately — no build step required — but serves
+ConfigFoundry's legacy static UI, since `frontend/out/` doesn't exist
+yet in a bare clone. For the current Next.js UI:
 
 ```bash
 make dev      # backend :8420 + Next.js dev server :3001, live-reloading
-make serve    # production build + single-port serve
+make serve    # builds frontend/out/, then single-port serve
 ```
 
-No internet access on the target machine? Use the offline installer
-instead — see [Air-Gap Deployment](docs/airgap.md):
+Either way it opens `http://localhost:8420/` automatically, creates
+`db/configfoundry.db`, and prints the bootstrap Super Admin's
+credentials to the console on first startup. Full walkthrough:
+[docs/getting-started.md](docs/getting-started.md).
+
+**From a release bundle (no Node, no internet, anywhere):**
 
 ```bash
+unzip ConfigFoundry-Offline-vX.Y.Z.zip && cd ConfigFoundry-Offline-vX.Y.Z
 ./install_offline.sh   # or install_offline.ps1 on Windows
 ./run_offline.sh
 ```
 
+This is the zero-internet, zero-Node path — the release bundle ships a
+prebuilt frontend and a full offline dependency vendor bundle that the
+git repository itself intentionally doesn't carry. Get one from GitHub
+Releases or build it yourself (`./scripts/build_release_bundle.sh`).
+See [Air-Gap Deployment](docs/airgap.md) for the full explanation and
+[Installation](docs/installation.md) for every method side by side.
+
 ## Documentation
 
 The full documentation set lives in [`docs/`](docs/index.md) and is also
-browsable inside the running app at **`/docs`**, with search, dark/light
-theme, and a table of contents — fully static, works offline. Highlights:
+browsable inside the running app at **`/documentation`**, with search,
+breadcrumbs, prev/next navigation, dark/light theme, and a table of
+contents — fully static, works offline. (Deliberately not `/docs` — that
+path is reserved for FastAPI's Swagger UI, below.) Highlights:
 
 | Topic | Page |
 |---|---|

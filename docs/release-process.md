@@ -37,9 +37,19 @@ on `main` and passed CI — there's no fixed cadence. See
 
 ## Building the release bundle
 
+> [!NOTE]
+> This is the one step that turns the lightweight, source-only git
+> repository into the fully self-contained offline artifact — see
+> [Air-Gap Deployment § Repository vs. release artifact](./airgap.md#repository-vs-release-artifact)
+> for what's committed to git versus what only exists inside the zip.
+
 ```bash
 ./scripts/build_release_bundle.sh
 ```
+
+If `vendor/python/` or `vendor/npm/` aren't already present, the script
+regenerates them automatically (needs internet access for that step
+only — see [Air-Gap Deployment § Regenerating the offline bundles](./airgap.md#regenerating-the-offline-bundles)).
 
 Produces `ConfigFoundry-Offline-vX.Y.Z.zip` in the repository root,
 containing everything a target machine needs with zero internet access:

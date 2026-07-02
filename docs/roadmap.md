@@ -14,10 +14,13 @@ fully superseded and no longer served once the Next.js build
 (`frontend/out/`) is present (see
 [Architecture § Frontend architecture](./architecture.md#frontend-architecture)).
 The legacy frontend also predates the authentication layer, so it can't
-be exposed as-is. This is the one feature genuinely unavailable in the
-current frontend rather than merely undocumented — see
-[Features § Network Tree](./features.md#network-tree) — and closing it
-is a higher priority than the items below.
+be exposed as-is.
+
+> [!IMPORTANT]
+> This is the one feature genuinely unavailable in the current frontend
+> rather than merely undocumented — see
+> [Features § Network Tree](./features.md#network-tree) — and closing it
+> is a higher priority than the items below.
 
 **Inventory Validation Engine** (highest priority) — stronger
 cross-field validation at import/edit time (e.g. detecting a device
@@ -79,19 +82,20 @@ API has had a full stable release cycle without a breaking change.
 
 ## Deliberately out of scope
 
-- **A built-in bug bounty / paid support program** — this is a
-  self-hosted, community-maintained tool, not a vendor product.
-- **A hosted/SaaS version** — the entire design (offline-first,
-  air-gap-capable, self-hosted storage) points the other direction on
-  purpose.
-- **A plugin marketplace or dynamic code loading** — every integration
-  is expected to be a reviewed, in-repo addition; loading unreviewed
-  third-party code at runtime conflicts with the air-gap/security
-  posture this project targets.
-- **GDPR-specific tooling** (data export/erasure endpoints, consent
-  tracking) — the audit trail and RBAC foundation support adding this
-  later, but SOC 2 was this project's primary compliance target so far;
-  not committed to a timeline.
+> [!NOTE]
+> - **A built-in bug bounty / paid support program** — this is a
+>   self-hosted, community-maintained tool, not a vendor product.
+> - **A hosted/SaaS version** — the entire design (offline-first,
+>   air-gap-capable, self-hosted storage) points the other direction on
+>   purpose.
+> - **A plugin marketplace or dynamic code loading** — every integration
+>   is expected to be a reviewed, in-repo addition; loading unreviewed
+>   third-party code at runtime conflicts with the air-gap/security
+>   posture this project targets.
+> - **GDPR-specific tooling** (data export/erasure endpoints, consent
+>   tracking) — the audit trail and RBAC foundation support adding this
+>   later, but SOC 2 was this project's primary compliance target so far;
+>   not committed to a timeline.
 
 ## How to influence this list
 

@@ -6,9 +6,12 @@ ConfigFoundry migrations are additive and forward-only — upgrading
 across any number of released versions in one step is supported, since
 `alembic upgrade head` applies every pending migration in order
 automatically at startup. There's no requirement to upgrade one minor
-version at a time. Downgrading is not supported as a matter of policy —
-restore the pre-upgrade database backup instead (see below) if you need
-to roll back.
+version at a time.
+
+> [!IMPORTANT]
+> Downgrading is not supported as a matter of policy — restore the
+> pre-upgrade database backup instead (see below) if you need to roll
+> back.
 
 ## Before you upgrade
 
@@ -26,6 +29,10 @@ to roll back.
 3. **Test against a copy**, not production, if this is a significant
    version jump or your deployment is high-stakes — restore your backup
    into a scratch instance, run the upgrade there first.
+
+> [!WARNING]
+> Skipping the backup step means an upgrade that goes wrong has no way
+> back except restoring the pre-upgrade backup you didn't make.
 
 ## Upgrading an air-gapped install
 

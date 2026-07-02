@@ -5,73 +5,100 @@ If you just want the fastest path, use [Getting Started](./getting-started.md)
 instead — this page covers every method in detail, including the ones
 that don't need internet access at all.
 
+> [!NOTE]
+> The git repository and the release bundle are two different things —
+> the repository is source only (small, normal `git clone` size); the
+> release bundle additionally carries a prebuilt frontend and the full
+> offline dependency vendor bundles. See
+> [Air-Gap Deployment § Repository vs. release artifact](./airgap.md#repository-vs-release-artifact)
+> for exactly what's in each and why.
+
 ## Requirements
 
 | | Minimum | Notes |
 |---|---|---|
 | Python | 3.10 | 3.12+ recommended |
-| Node.js | 18 (optional) | Only needed to rebuild the frontend. A pre-built `frontend/out/` static export ships in the repo/release bundle, so most installs never need Node. |
+| Node.js | 18 (optional) | Only needed to build the frontend from source. Installing from a release bundle (Method 1) ships a prebuilt `frontend/out/`, so that path never needs Node at all. |
 | Disk | ~200 MB | App + dependencies + offline wheelhouse, before your database grows |
 | Database | none required | SQLite ships built into Python; PostgreSQL/MySQL/SQL Server are optional (see [Storage](./storage.md)) |
 
-## Method 1: from source, with internet access
+## Method 1: release bundle (recommended for offline / air-gapped)
+
+Download `ConfigFoundry-Offline-vX.Y.Z.zip` from the project's GitHub
+Releases page (built automatically by CI — see
+[Release Process](./release-process.md)). It's a single self-contained
+archive with the wheelhouse, npm vendor artifacts, the prebuilt
+frontend, documentation, and every installer script — nothing else to
+clone or download, and **no internet access needed on the target
+machine at all**.
+
+```bash
+unzip ConfigFoundry-Offline-vX.Y.Z.zip
+cd ConfigFoundry-Offline-vX.Y.Z
+```
+
+::: tabs
+@tab Linux / macOS
+```bash
+./install_offline.sh
+./run_offline.sh
+```
+@tab Windows (PowerShell)
+```powershell
+.\install_offline.ps1
+.\run_offline.ps1
+```
+:::
+
+Full detail on exactly what the installer does and how "zero internet
+access" is verified: [Air-Gap Deployment](./airgap.md).
+
+## Method 2: from source, with internet access
 
 ```bash
 git clone https://github.com/shivamsancc/ConfigFoundry.git
 cd ConfigFoundry
 pip install -r requirements.txt
-python3 server.py
 ```
 
-This downloads dependencies from PyPI normally. Use this for local
-development or any environment where PyPI access is fine. If you also
-want to rebuild the frontend from source instead of using the pre-built
-`frontend/out/`:
+Build the frontend once (this is the one step that needs Node — a bare
+source checkout doesn't ship a prebuilt `frontend/out/`, unlike the
+release bundle in Method 1):
 
 ```bash
 cd frontend
 npm install
 npm run build     # writes frontend/out/, a static export
 cd ..
+```
+
+Then run it:
+
+```bash
 python3 server.py
 ```
 
-## Method 2: offline / air-gapped install
+Use this for local development, contributing, or any environment where
+PyPI/npm access is fine.
 
-For environments with zero internet access (see
-[Air-Gap Deployment](./airgap.md) for the full explanation of what "zero
-internet access" means here and how it's verified):
+## Method 3: offline install from a source checkout
+
+If you have a source checkout (Method 2) but want to install the
+**Python** side without PyPI access, `vendor/python/` is committed to
+the repository specifically to make this possible on its own:
 
 ```bash
-./install_offline.sh      # Linux/macOS
-# or
-.\install_offline.ps1     # Windows PowerShell
+python3 -m venv .venv
+.venv/bin/pip install --no-index --find-links vendor/python -r requirements.txt
 ```
 
-This script:
-
-1. Verifies Python 3.10+ is present.
-2. Creates a `.venv/` virtual environment.
-3. Installs every Python dependency from the vendored wheelhouse
-   (`vendor/python/`) via `pip install --no-index --find-links`, never
-   contacting PyPI.
-4. Uses the pre-built `frontend/out/` if present (the common case); if
-   you need to rebuild it offline, it uses `vendor/npm/` — see
-   [Air-Gap Deployment](./airgap.md) for that path's current state.
-5. Prints a success message once everything is verified installed.
-
-Then start it with `./run_offline.sh` (or `run_offline.ps1`), which just
-activates `.venv/` and runs `server.py`.
-
-## Method 3: release bundle
-
-Enterprise releases are also published as a single self-contained
-archive, `ConfigFoundry-Offline-vX.Y.Z.zip`, that already contains the
-wheelhouse, npm vendor artifacts, the pre-built frontend, documentation,
-and all installer scripts — nothing to separately clone or download. See
-[Release Process](./release-process.md) for what's inside and how it's
-built. Unzip it anywhere and run `install_offline.sh` / `.ps1` exactly as
-in Method 2.
+You'll still need Node and internet access (or a manually-vendored
+`vendor/npm/`, see [Air-Gap Deployment](./airgap.md#regenerating-the-offline-bundles))
+to build the frontend, since that vendor bundle isn't committed to the
+repository. `install_offline.sh` run from a source checkout (rather than
+a release bundle) automates exactly this path — see
+[Air-Gap Deployment](./airgap.md) for what it does when `frontend/out/`
+isn't already present.
 
 ## Verifying an install
 

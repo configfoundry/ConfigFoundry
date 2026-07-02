@@ -8,19 +8,22 @@ step-by-step process for writing a new migration — is
 
 ## How it works, in short
 
-```
-server.py → create_app() → StorageProvider.initialize()
-  → core.migrations.runner.run_migrations(engine)
-      • no alembic_version, no app tables  → alembic upgrade head  (fresh DB)
-      • no alembic_version, has app tables → alembic stamp head    (legacy DB)
-      • has alembic_version                → alembic upgrade head  (no-op or pending)
+```mermaid
+flowchart TD
+    A["server.py"] --> B["create_app()"]
+    B --> C["StorageProvider.initialize()"]
+    C --> D["run_migrations(engine)"]
+    D -->|"no alembic_version,\nno app tables"| E["alembic upgrade head\n(fresh DB)"]
+    D -->|"no alembic_version,\nhas app tables"| F["alembic stamp head\n(legacy DB)"]
+    D -->|"has alembic_version"| G["alembic upgrade head\n(no-op or pending)"]
 ```
 
-Startup is always safe to run: if the database is already current,
-`upgrade head` is a no-op. If new migrations shipped with a new release,
-they apply automatically before the server starts serving requests —
-this is also what `upgrade_offline.sh` relies on (see
-[Upgrade Guide](./upgrade.md) and [Air-Gap Deployment](./airgap.md)).
+> [!TIP]
+> Startup is always safe to run: if the database is already current,
+> `upgrade head` is a no-op. If new migrations shipped with a new
+> release, they apply automatically before the server starts serving
+> requests — this is also what `upgrade_offline.sh` relies on (see
+> [Upgrade Guide](./upgrade.md) and [Air-Gap Deployment](./airgap.md)).
 
 ## Common commands
 
@@ -42,8 +45,10 @@ alembic upgrade head --sql             # preview DDL without executing (for DBA 
    autogenerate can miss check constraints and some index types.
 4. Test both `upgrade()` and `downgrade()` against a copy of production
    data before merging.
-5. Never modify a migration file after it has shipped in a release —
-   write a new one instead, even to fix a mistake in an earlier one.
+
+> [!WARNING]
+> Never modify a migration file after it has shipped in a release —
+> write a new one instead, even to fix a mistake in an earlier one.
 
 Full walkthrough with example diffs: [Database Migrations](./database-migrations.md#adding-a-new-migration).
 

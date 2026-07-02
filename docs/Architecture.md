@@ -20,42 +20,21 @@ For where these principles are headed next, see [Roadmap](./roadmap.md).
 
 ## System overview
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  Browser                                                          │
-│  Next.js static export (frontend/out/) served from the same       │
-│  origin as the API — no separate frontend server, no CORS in the  │
-│  common case                                                      │
-└───────────────────────────────┬────────────────────────────────────┘
-                                  │ HTTPS (TLS terminated by a reverse
-                                  │ proxy in front — see Deployment)
-┌───────────────────────────────▼────────────────────────────────────┐
-│  FastAPI app (app.py)                                              │
-│                                                                      │
-│  TrustedProxyMiddleware → AccessPolicyMiddleware → RateLimit        │
-│    → SecurityHeadersMiddleware → CORS/CorrelationID/RequestLogging  │
-│    → routes → get_current_principal() → require_permission()        │
-│                                                                      │
-│  /api/v1/*      REST API (10 routers, see API Reference)            │
-│  /docs /redoc   self-hosted Swagger UI / ReDoc                       │
-│  /              static frontend export                               │
-└───────┬─────────────────────────────┬───────────────────────────────┘
-         │ Service layer               │
-┌────────▼─────────┐         ┌────────▼──────────┐
-│  Business services │         │  Security services │
-│  Device/Bandwidth/  │         │  Auth/RBAC/MFA/     │
-│  Subnet/Tag/List/   │         │  APIKey/PolicyEngine │
-│  Generate/Export     │         │                      │
-└────────┬─────────┘         └────────┬──────────┘
-         │ Repository interfaces (ABCs)                 │
-┌────────▼──────────────────────────────────────────────▼──────────┐
-│  Repository layer — 8+ SQLAlchemy repositories, one per aggregate  │
-└────────────────────────────────┬───────────────────────────────────┘
-                                   │ StorageProvider.get_engine()
-┌──────────────────────────────────▼───────────────────────────────┐
-│  StorageProvider (ABC) — SQLite (full) / PostgreSQL, MySQL,         │
-│  SQL Server (scaffolded) — see Storage                              │
-└───────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Browser["Browser<br/>Next.js static export (frontend/out/), same origin as the API —<br/>no separate frontend server, no CORS in the common case"]
+    FastAPI["FastAPI app (app.py)<br/><br/>TrustedProxyMiddleware → AccessPolicyMiddleware → RateLimit<br/>→ SecurityHeadersMiddleware → CORS/CorrelationID/RequestLogging<br/>→ routes → get_current_principal() → require_permission()<br/><br/>/api/v1/* REST API (10 routers) · /docs /redoc Swagger/ReDoc · / static frontend"]
+    Business["Business services<br/>Device / Bandwidth / Subnet / Tag / List / Generate / Export"]
+    SecuritySvc["Security services<br/>Auth / RBAC / MFA / APIKey / PolicyEngine"]
+    Repo["Repository layer<br/>8+ SQLAlchemy repositories, one per aggregate"]
+    Storage["StorageProvider (ABC)<br/>SQLite (full) / PostgreSQL, MySQL, SQL Server (scaffolded)"]
+
+    Browser -->|"HTTPS (TLS terminated by a reverse proxy)"| FastAPI
+    FastAPI -->|"Service layer"| Business
+    FastAPI -->|"Service layer"| SecuritySvc
+    Business -->|"Repository interfaces (ABCs)"| Repo
+    SecuritySvc -->|"Repository interfaces (ABCs)"| Repo
+    Repo -->|"StorageProvider.get_engine()"| Storage
 ```
 
 ## Request lifecycle
@@ -147,8 +126,10 @@ attributable and reviewable via `GET /api/v1/history`.
 
 ## Diagram source
 
-Diagrams on this page are plain text (box-drawing) so they render
-identically in the in-app docs viewer, GitHub, and any plain-text reader
-— no diagram-rendering service or CDN dependency required, consistent
-with the air-gap requirement that everything in `docs/` works with zero
-network access.
+Diagrams on this page are [Mermaid](https://mermaid.js.org/) fenced code
+blocks (` ```mermaid `), rendered client-side by a small, self-hosted
+Mermaid bundle in the in-app documentation viewer — no CDN dependency,
+consistent with the air-gap requirement that everything in `docs/` works
+with zero network access (see [Air-Gap Deployment](./airgap.md)). GitHub
+also renders these natively, and any plain-text reader still shows
+readable diagram source even without rendering support.

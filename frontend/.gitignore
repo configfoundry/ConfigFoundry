@@ -3,9 +3,13 @@ node_modules/
 *.local
 .env
 
-# out/ (the built static export) is intentionally NOT ignored: it ships
-# committed in the repository so a plain `git clone` + `pip install` works
-# with zero Node.js/npm install, and so it's present in offline release
-# bundles built by scripts/build_release_bundle.sh. Rebuild it with
-# `make build` after changing frontend/src and commit the result. See
-# docs/airgap.md and docs/installation.md.
+# out/ (the built static export) is intentionally ignored: it is a
+# generated build artifact, not source. It is NOT committed to the
+# repository -- keeping the repo to source-code-and-docs is what keeps
+# `git clone` lightweight. The prebuilt frontend instead ships inside
+# offline release bundles (ConfigFoundry-Offline-vX.Y.Z.zip, built by
+# scripts/build_release_bundle.sh), which is where an install that
+# needs zero Node.js should come from. Building from a plain git clone
+# needs Node once (`make build`) to produce this directory locally.
+# See docs/airgap.md and docs/installation.md.
+out/

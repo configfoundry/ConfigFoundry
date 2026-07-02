@@ -1,19 +1,22 @@
 /**
  * Build-time data layer for the in-app documentation viewer
- * (frontend/src/app/docs/). Reads directly from the repository's docs/
- * directory (one level up from frontend/) -- there is no copy step, so
- * the in-app viewer can never drift from the docs/*.md files themselves.
+ * (frontend/src/app/documentation/). Reads directly from the
+ * repository's docs/ directory (one level up from frontend/) -- there
+ * is no copy step, so the in-app viewer can never drift from the
+ * docs/*.md files themselves.
  *
- * Everything here runs at `next build` time only (Node.js fs access),
- * never in the browser -- consistent with the static export / air-gap
- * requirement that the shipped frontend/out/ needs no server process.
- * See docs/airgap.md and docs/architecture.md#frontend-architecture.
+ * Everything here runs at `next build` time only (Node.js fs/child_process
+ * access), never in the browser -- consistent with the static export /
+ * air-gap requirement that the shipped frontend/out/ needs no server
+ * process. See docs/airgap.md and docs/architecture.md#frontend-architecture.
  */
 import fs from 'fs'
 import path from 'path'
+import { execFileSync } from 'child_process'
 import { renderMarkdown, type Heading } from './markdown'
 
 const DOCS_DIR = path.join(process.cwd(), '..', 'docs')
+const REPO_ROOT = path.join(process.cwd(), '..')
 
 export interface DocMeta {
   slug: string
@@ -25,11 +28,20 @@ export interface DocGroup {
   docs: DocMeta[]
 }
 
+export interface DocNavLink {
+  slug: string
+  title: string
+}
+
 export interface DocPage {
   slug: string
   title: string
+  group: string
   html: string
   headings: Heading[]
+  lastUpdated: string | null
+  prev: DocNavLink | null
+  next: DocNavLink | null
 }
 
 export interface SearchEntry {
@@ -44,7 +56,8 @@ export interface SearchEntry {
 // getAllDocsMeta() below throws at build time if this list and the real
 // docs/*.md files on disk ever go out of sync in either direction --
 // deliberately fail loudly rather than silently ship a doc page with no
-// nav entry, or a nav entry pointing at a deleted file.
+// nav entry, or a nav entry pointing at a deleted file. This same order
+// drives the flattened prev/next sequence at the bottom of every page.
 const NAV_GROUPS: { label: string; slugs: string[] }[] = [
   { label: 'Getting Started', slugs: ['getting-started', 'installation', 'features', 'faq'] },
   { label: 'Air-Gap & Enterprise', slugs: ['airgap', 'enterprise', 'security', 'configuration', 'deployment'] },
@@ -119,10 +132,99 @@ export function getAllDocsMeta(): DocGroup[] {
   return groups
 }
 
+/** Flattened [group label, slug, title] sequence, in nav order -- the basis for prev/next links. */
+function getFlatSequence(): { slug: string; title: string; group: string }[] {
+  const flat: { slug: string; title: string; group: string }[] = []
+  for (const group of getAllDocsMeta()) {
+    for (const doc of group.docs) {
+      flat.push({ slug: doc.slug, title: doc.title, group: group.label })
+    }
+  }
+  return flat
+}
+
+function groupForSlug(slug: string): string {
+  for (const group of getAllDocsMeta()) {
+    if (group.docs.some((d) => d.slug === slug)) return group.label
+  }
+  return ''
+}
+
+let cachedGitAvailable: boolean | null = null
+
+function gitAvailable(): boolean {
+  if (cachedGitAvailable !== null) return cachedGitAvailable
+  try {
+    execFileSync('git', ['rev-parse', '--is-inside-work-tree'], { cwd: REPO_ROOT, stdio: 'pipe' })
+    cachedGitAvailable = true
+  } catch {
+    cachedGitAvailable = false
+  }
+  return cachedGitAvailable
+}
+
+/**
+ * "Last updated" date for a doc page. Prefers the last commit that
+ * touched docs/<slug>.md (accurate across clones/CI, not just this
+ * machine's checkout time); falls back to the file's own mtime if git
+ * isn't available or the file has no commit history yet (e.g. it was
+ * just added and hasn't been committed in this working copy); returns
+ * null rather than guessing if neither is available.
+ */
+function getLastUpdated(slug: string): string | null {
+  const file = path.join(DOCS_DIR, `${slug}.md`)
+  if (gitAvailable()) {
+    try {
+      const out = execFileSync(
+        'git',
+        ['log', '-1', '--format=%aI', '--', path.join('docs', `${slug}.md`)],
+        { cwd: REPO_ROOT, stdio: 'pipe' }
+      )
+        .toString()
+        .trim()
+      if (out) return out
+    } catch {
+      // fall through to mtime
+    }
+  }
+  try {
+    return fs.statSync(file).mtime.toISOString()
+  } catch {
+    return null
+  }
+}
+
+let cachedVersion: string | null = null
+
+/** ConfigFoundry's current version, read once from frontend/package.json. */
+export function getVersion(): string {
+  if (cachedVersion) return cachedVersion
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf-8'))
+    cachedVersion = String(pkg.version || '0.0.0')
+  } catch {
+    cachedVersion = '0.0.0'
+  }
+  return cachedVersion
+}
+
 export function getDoc(slug: string): DocPage {
   const raw = readDocRaw(slug)
   const { html, headings } = renderMarkdown(raw)
-  return { slug, title: extractTitle(raw, slug), html, headings }
+  const flat = getFlatSequence()
+  const idx = flat.findIndex((d) => d.slug === slug)
+  const prev = idx > 0 ? { slug: flat[idx - 1].slug, title: flat[idx - 1].title } : null
+  const next = idx >= 0 && idx < flat.length - 1 ? { slug: flat[idx + 1].slug, title: flat[idx + 1].title } : null
+  return {
+    slug,
+    title: extractTitle(raw, slug),
+    group: groupForSlug(slug),
+    html,
+    headings,
+    lastUpdated: getLastUpdated(slug),
+    prev,
+    next,
+  }
 }
 
 export function getSearchIndex(): SearchEntry[] {

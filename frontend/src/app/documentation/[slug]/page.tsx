@@ -29,5 +29,16 @@ export default function DocSlugPage({ params }: { params: { slug: string } }) {
   } catch {
     notFound()
   }
-  return <DocsContent title={doc.title} html={doc.html} headings={doc.headings} />
+  return (
+    <DocsContent
+      slug={doc.slug}
+      title={doc.title}
+      group={doc.group}
+      html={doc.html}
+      headings={doc.headings}
+      lastUpdated={doc.lastUpdated}
+      prev={doc.prev}
+      next={doc.next}
+    />
+  )
 }
