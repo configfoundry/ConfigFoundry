@@ -141,18 +141,27 @@ for p in app.py server.py requirements.txt requirements-dev.txt \
          alembic.ini README.md LICENSE Makefile; do
   copy_path "$p"
 done
-for d in \
-    api \
-    core \
-    formats \
-    models \
-    alembic \
-    static \
-    docs \
-    scripts
-do
-  copy_path "$d"
+# Copy all top-level Python packages automatically
+for d in */ ; do
+    d="${d%/}"
+
+    case "$d" in
+        .git|.github|frontend|vendor|tests|docs|scripts|static|alembic|__pycache__)
+            continue
+            ;;
+    esac
+
+    if [[ -f "$d/__init__.py" ]]; then
+        copy_path "$d"
+    fi
 done
+
+# Copy required non-package directories
+copy_path alembic
+copy_path static
+copy_path docs
+copy_path scripts
+
 # Frontend: pre-built static export (what install_offline.sh uses by
 # default) PLUS the source tree (so the optional offline-rebuild path in
 # install_offline.sh has something to rebuild from) -- explicitly
