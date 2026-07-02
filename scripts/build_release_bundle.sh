@@ -141,10 +141,18 @@ for p in app.py server.py requirements.txt requirements-dev.txt \
          alembic.ini README.md LICENSE Makefile; do
   copy_path "$p"
 done
-for d in core api models alembic static docs scripts; do
+for d in \
+    api \
+    core \
+    formats \
+    models \
+    alembic \
+    static \
+    docs \
+    scripts
+do
   copy_path "$d"
 done
-
 # Frontend: pre-built static export (what install_offline.sh uses by
 # default) PLUS the source tree (so the optional offline-rebuild path in
 # install_offline.sh has something to rebuild from) -- explicitly
