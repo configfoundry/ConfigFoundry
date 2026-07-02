@@ -18,3 +18,11 @@ __pycache__/
 # Swap files
 *.swp
 *.swo
+
+# Virtual environment created by install_offline.sh / manual `python3 -m venv .venv`
+.venv/
+
+# Offline release bundles built by scripts/build_release_bundle.sh --
+# regenerate from source, don't commit the archive itself.
+ConfigFoundry-Offline-*.zip
+ConfigFoundry-Offline-*.zip.sha256

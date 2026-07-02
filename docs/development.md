@@ -1,0 +1,133 @@
+# Development Guide
+
+## Project layout
+
+```
+app.py                 FastAPI app factory — middleware, docs routes, static mount
+server.py               CLI entry point (argparse, calls create_app())
+core/
+  container.py           ServiceContainer — dependency injection root
+  storage/                StorageProvider abstraction (see Storage)
+  security/               auth, RBAC, MFA, rate limiting, middleware (see Security)
+  logging/                structured logging framework (see Logging)
+  migrations/              programmatic Alembic runner
+  services/                business logic (pure, no direct DB access)
+  repositories/            SQLAlchemy repository implementations
+models/                  SQLAlchemy ORM models
+api/
+  dependencies.py         get_container(), get_current_principal(), require_permission()
+  v1/                      REST routers, one file per resource
+alembic/versions/         migration files
+frontend/
+  src/                     Next.js App Router source
+  out/                     built static export (served by FastAPI)
+static/                  self-hosted assets (logo, favicon, vendored docs JS/CSS)
+scripts/                 wheelhouse builder, npm vendor builder, air-gap validator
+vendor/                  offline dependency bundles (python/, npm/)
+tests/                   backend test suite (pytest)
+docs/                    this documentation set
+```
+
+## Setting up a dev environment
+
+```bash
+git clone https://github.com/shivamsancc/ConfigFoundry.git
+cd ConfigFoundry
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
+```
+
+Frontend, if you're changing it:
+
+```bash
+cd frontend && npm install
+```
+
+## Running it locally
+
+```bash
+make dev            # backend on :8420 + Next.js dev server on :3001, both live-reloading
+# or individually:
+make dev-backend    # FastAPI only
+make dev-frontend   # Next.js dev server only
+```
+
+`make dev` is what you want when actively changing frontend code — the
+Next.js dev server proxies API calls to the backend and hot-reloads on
+save. For a production-shaped single-port test:
+
+```bash
+make build           # builds frontend/out/
+make serve            # build + start FastAPI serving both API and frontend on :8420
+```
+
+`make build` is self-healing against a known Next.js bug where a stale
+`package-lock.json` (its pinned `@next/swc-*` versions drifting from the
+installed `next` version) crashes the internal lockfile patcher — if
+that specific failure signature is detected, it regenerates
+`node_modules`/the lockfile and retries once automatically rather than
+leaving you to debug unrelated tooling noise.
+
+## Running the tests
+
+```bash
+python -m pytest -q                    # full suite
+python -m pytest tests/security -q     # one area
+python -m pytest -k test_login -q      # by name
+```
+
+This is the same command CI runs (`backend-tests` job). See
+`tests/` for the directory layout, mirroring the package structure
+(`tests/security/`, `tests/storage/`, `tests/services/`, etc.).
+
+Frontend typechecking:
+
+```bash
+cd frontend && npx tsc --noEmit
+```
+
+## Making a schema change
+
+See [Migrations § Writing a new migration](./migrations.md#writing-a-new-migration)
+for the full step-by-step — edit the model, `alembic revision
+--autogenerate`, review the generated file, test upgrade and downgrade.
+
+## Adding a new API endpoint
+
+1. Add the route to the relevant file in `api/v1/` (or a new file,
+   registered in `api/v1/router.py`).
+2. Depend on `require_permission("resource:action")` — add a new
+   permission code to `core/security/permissions.py` first if none of
+   the existing ones fit (see [RBAC](./rbac.md)).
+3. Put actual logic in a service (`core/services/`), not the route
+   handler — routes validate input and shape responses, nothing more
+   (see [Architecture § Layering rules](./architecture.md#layering-rules)).
+4. Add tests.
+5. If the change is user-facing, note it for the next release's
+   changelog (see [Release Process](./release-process.md)).
+
+## Keeping the air-gap bundle in sync
+
+If you add or upgrade a Python or npm dependency, regenerate the
+offline vendor bundles before your change ships in a release:
+
+```bash
+./scripts/build_python_wheelhouse.sh
+./scripts/build_npm_offline_vendor.sh    # only if frontend dependencies changed
+python3 scripts/validate_airgap.py
+```
+
+See [Air-Gap Deployment § Regenerating the offline bundles](./airgap.md#regenerating-the-offline-bundles).
+
+## Code style
+
+Explicit over clever, per the [architecture principles](./architecture.md#principles).
+No hardcoded role-name checks (use permission codes). No new external
+CDN/network dependency in application source — `validate_airgap.py` will
+catch it, but it's cheaper to know the rule going in.
+
+## See also
+
+- [Contributing](./contributing.md) — how to propose a change.
+- [Architecture](./architecture.md) — the design this all sits inside.
+- [Roadmap](./roadmap.md) — what's planned, what's deliberately out of scope.

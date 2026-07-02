@@ -36,6 +36,22 @@ _logger = get_logger("configfoundry.security")
 # consistent with "don't leak API shape to a denied network").
 _ALWAYS_ALLOW_PREFIXES = ()
 
+# FastAPI's built-in /docs and /redoc default to loading their JS/CSS from
+# public CDNs (cdn.jsdelivr.net, fonts.googleapis.com). This app instead
+# serves self-hosted, vendored copies of those assets (see app.py's custom
+# /docs and /redoc routes + the static/vendor/docs/ directory) specifically
+# so the CSP below can stay same-origin-only everywhere, with no
+# CDN-allowlist carve-out and no runtime dependency on a third party being
+# reachable.
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data:; "
+    "connect-src 'self'; "
+    "frame-ancestors 'none'"
+)
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Adds baseline security response headers and rejects oversized
@@ -82,14 +98,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # hydrates (renders a blank page with no console-visible crash).
         # Tightened further (nonce/hash-based CSP) would require a
         # Next.js build-time nonce-injection step, out of scope here.
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data:; "
-            "connect-src 'self'; "
-            "frame-ancestors 'none'"
-        )
+        # /docs and /redoc need no carve-out -- see _CSP above.
+        response.headers["Content-Security-Policy"] = _CSP
         return response
 
 

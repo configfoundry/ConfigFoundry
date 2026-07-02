@@ -1,5 +1,11 @@
 .next/
-out/
 node_modules/
 *.local
 .env
+
+# out/ (the built static export) is intentionally NOT ignored: it ships
+# committed in the repository so a plain `git clone` + `pip install` works
+# with zero Node.js/npm install, and so it's present in offline release
+# bundles built by scripts/build_release_bundle.sh. Rebuild it with
+# `make build` after changing frontend/src and commit the result. See
+# docs/airgap.md and docs/installation.md.

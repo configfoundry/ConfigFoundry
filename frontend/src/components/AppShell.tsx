@@ -247,6 +247,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <div className="sidebar-footer">
           <span>v0.5</span>
+          <Link href="/docs/">Docs</Link>
           <a
             href="https://github.com/shivamsancc/ConfigFoundry"
             target="_blank"

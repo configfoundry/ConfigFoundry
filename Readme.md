@@ -5,626 +5,178 @@
 <p align="center">
   <a href="https://github.com/shivamsancc/ConfigFoundry"><img alt="repo" src="https://img.shields.io/badge/github-shivamsancc%2FConfigFoundry-181717?logo=github"></a>
   <img alt="status" src="https://img.shields.io/badge/status-active-brightgreen">
-  <img alt="python" src="https://img.shields.io/badge/python-3.12%2B-blue">
+  <img alt="python" src="https://img.shields.io/badge/python-3.10%2B-blue">
+  <img alt="airgap" src="https://img.shields.io/badge/deployment-air--gap%20capable-informational">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-lightgrey">
 </p>
 
 <p align="center">
-  A shared, self-hosted tool for generating Datadog SNMP/ICMP collector config YAML
-  from a team-maintained inventory of network devices, bandwidth caps, and subnets.
+  A shared, self-hosted tool for generating SNMP/ICMP collector config YAML
+  from a team-maintained inventory of network devices, bandwidth caps, and subnets —
+  with enterprise authentication, RBAC, and a fully offline, air-gap-capable
+  deployment path.
+</p>
+
+<p align="center">
+  <a href="docs/getting-started.md">Getting Started</a> ·
+  <a href="docs/index.md">Documentation</a> ·
+  <a href="docs/airgap.md">Air-Gap Deployment</a> ·
+  <a href="docs/api.md">API Reference</a>
 </p>
 
 ---
 
 ## Why this exists
 
-Network teams often track device inventory in a spreadsheet and hand-roll monitoring
-config from it. ConfigFoundry replaces that with a small shared web server: one person
-runs it on an always-on machine, and everyone on the team opens it in a browser to
-manage the same dataset together &mdash; no per-person spreadsheet copies, no merge
-conflicts, no "whose version is current?"
+Network teams often track device inventory in a spreadsheet and hand-roll
+monitoring config from it. ConfigFoundry replaces that with a small shared
+web server: one person runs it on an always-on machine, and everyone on the
+team opens it in a browser to manage the same dataset together — no
+per-person spreadsheet copies, no merge conflicts, no "whose version is
+current?"
 
-What you get instead of a spreadsheet: multi-user access from one shared dataset,
-input validation (IP/CIDR format, credential fields), an audit log of who changed
-what, and YAML generation that's always derived from current data instead of
-copy-pasted by hand. What you give up: there's no offline editing without the
-server running, and if your team lives in pivot tables and conditional formatting,
-this won't replace that workflow &mdash; it replaces the "this is also our source of
-truth for monitoring config" part of it.
+What you get instead of a spreadsheet: multi-user access from one shared
+dataset, input validation, an audit log of who changed what, and YAML
+generation that's always derived from current data instead of copy-pasted by
+hand — plus, if your environment needs it, a full enterprise security layer
+(JWT + MFA + API keys + RBAC + IP policies) and an installation path that
+works with zero internet access. See [FAQ](docs/faq.md) for the questions
+people actually ask, and [Features](docs/features.md) for what "isn't a CMDB"
+and "single shared database" mean in practice before you adopt it.
 
-## Getting Started
+## Screenshots
 
-### Requirements
+Not included in this revision yet — tracked in [Roadmap](docs/roadmap.md).
+Run it yourself (five minutes, see Quick Start below) rather than relying on
+descriptions here.
 
-- Python 3.12+
-- pip packages listed in `requirements.txt` (FastAPI, SQLAlchemy 2.x, Pydantic v2, uvicorn, httpx)
+## Features
 
-### Installation
+- **Inventory management** — devices, bandwidth caps, and subnets with full
+  CRUD, search, sort, pagination, and Excel import/export.
+- **Dynamic tags** — define your own classification (Region, Environment,
+  Device Class, anything) instead of hardcoded fields, with subnet-based
+  inheritance so you tag a `/24` once instead of every device in it.
+- **Network Tree diagram** — a pan/zoom spatial view of subnets → devices →
+  bandwidth rows. *(Currently only in the legacy frontend, not yet ported to
+  the Next.js UI — see [Features § Network Tree](docs/features.md#network-tree)
+  for the honest status of this one.)*
+- **Enterprise authentication & RBAC** — Argon2id passwords, JWT + rotating
+  refresh tokens, TOTP MFA, API keys, fine-grained permission-code
+  authorization, an IP-based Access Policy Engine, and a full audit trail.
+  See [Security](docs/security.md) and [RBAC](docs/rbac.md).
+- **Storage abstraction** — SQLite by default (zero configuration), with
+  PostgreSQL/MySQL/SQL Server as a config change away. See
+  [Storage](docs/storage.md).
+- **Air-gap deployment** — install and run with zero internet access,
+  verified automatically in CI. See [Air-Gap Deployment](docs/airgap.md).
+
+Full feature reference, including what ConfigFoundry deliberately isn't:
+[docs/features.md](docs/features.md).
+
+## Architecture overview
+
+```
+Browser → Next.js static export (same origin) → FastAPI (app.py)
+            → middleware (access policy, rate limit, security headers)
+            → routes → service layer → repository layer
+            → StorageProvider (SQLite / PostgreSQL / MySQL / SQL Server)
+```
+
+Layered, with each layer depending only on the one below it through an
+explicit interface — repositories never import a database driver directly,
+services never contain HTTP code, routes never contain business logic. Full
+diagram, request lifecycle, and module layout:
+[docs/architecture.md](docs/architecture.md).
+
+## Quick start
 
 ```bash
 git clone https://github.com/shivamsancc/ConfigFoundry.git
 cd ConfigFoundry
 pip install -r requirements.txt
-```
-
-### Start the server
-
-```bash
 python3 server.py
 ```
 
-Starts on **`http://localhost:8420/`**, creates `db/configfoundry.db` automatically, and opens your default browser. Press `Ctrl+C` to stop.
+Opens `http://localhost:8420/` automatically, creates `db/configfoundry.db`,
+and prints the bootstrap Super Admin's credentials to the console on first
+startup. Full walkthrough: [docs/getting-started.md](docs/getting-started.md).
 
-### Custom database path
-
-```bash
-python3 server.py --db /path/to/shared/configfoundry.db
-```
-
-Point multiple team members at the same file on a shared drive so everyone works from the same dataset.
-
-### Custom host and port
+Rebuilding the frontend from source (optional — a pre-built
+`frontend/out/` ships in the repo):
 
 ```bash
-python3 server.py --host 0.0.0.0 --port 9000 --no-browser
+make dev      # backend :8420 + Next.js dev server :3001, live-reloading
+make serve    # production build + single-port serve
 ```
 
-Default host is `0.0.0.0` (all interfaces). Default port is `8420`.
-
-### All CLI options
-
-```
-python3 server.py --help
-
-  --db PATH         Path to SQLite database file (default: db/configfoundry.db)
-  --config FILE     Path to a YAML config file (enables PostgreSQL/MySQL/etc.)
-  --port PORT       Port to listen on (default: 8420)
-  --host HOST       Interface to bind (default: 0.0.0.0)
-  --no-browser      Don't open a browser tab on startup
-```
-
-### Frontend (Next.js)
-
-The frontend is built with **Next.js 15 (App Router) + TypeScript + TanStack Query**. For production it compiles to a static site (`frontend/out/`) that FastAPI serves automatically. The legacy `static/` vanilla-JS UI remains as a fallback if the Next.js build has not been run.
-
-**First-time setup (install Node dependencies):**
+No internet access on the target machine? Use the offline installer
+instead — see [Air-Gap Deployment](docs/airgap.md):
 
 ```bash
-cd frontend && npm install
+./install_offline.sh   # or install_offline.ps1 on Windows
+./run_offline.sh
 ```
 
-**Development mode — two servers, one command:**
-
-```bash
-make dev
-```
-
-This starts FastAPI on `:8420` and the Next.js dev server on `:3001` in parallel. The dev server proxies `/api/*` to FastAPI, so the UI always talks to the real backend. Open `http://localhost:3001/` in your browser. You can also start them separately:
-
-```bash
-make dev-backend     # FastAPI on :8420
-make dev-frontend    # Next.js on :3001
-```
-
-**Production build — single port, single command:**
-
-```bash
-make build    # compiles Next.js → frontend/out/
-python3 server.py  # FastAPI serves frontend/out/ at /
-```
-
-Or in one step:
-
-```bash
-make serve
-```
-
-After `make build`, `python3 server.py` automatically detects `frontend/out/` and serves it instead of `static/`. There is no separate Node process at runtime.
-
-**Pages:**
-
-| Page | URL | Description |
-|------|-----|-------------|
-| Dashboard | `/dashboard` | Inventory totals, recent activity, generation status |
-| Inventory | `/inventory` | Devices, Bandwidth, Subnets — search, sort, paginate, import, edit, delete |
-| Validation | `/validation` | Run generation and display findings with severity badges |
-| Generate YAML | `/generate` | Generate, preview, and download YAML config files |
-| History | `/history` | YAML generation history + Audit log |
-| Settings | `/settings` | Tag definitions and managed lists |
-
-### Development mode (auto-reload, backend only)
-
-`server.py` does not pass `--reload` to uvicorn. For live reload of the **Python backend** only, create a one-line shim and run uvicorn directly:
-
-```python
-# dev.py
-from app import create_app
-app = create_app(db_path="db/dev.db")
-```
-
-```bash
-uvicorn dev:app --reload --port 8420
-```
-
-Any change to a `.py` file triggers an automatic restart.
-
-### First run walkthrough
-
-0. **Log in** &rarr; the server prints the bootstrap Super Admin's email and a
-   generated password to the console on first startup (or use the
-   `CONFIGFOUNDRY_AUTH_BOOTSTRAP_EMAIL` / `_PASSWORD` env vars to set your
-   own beforehand). See [`docs/authentication.md`](docs/authentication.md).
-1. **Manage Lists** &rarr; add a Collector Region (e.g. `aws-mumbai`).
-2. **Devices** &rarr; add a device, assign it that Collector Region.
-3. **Generate YAML** &rarr; click Generate. You now have a YAML file derived from that device.
-
-### API explorer (Swagger UI)
-
-FastAPI generates interactive API documentation automatically:
-
-| URL | Description |
-|-----|-------------|
-| `http://localhost:8420/docs` | Swagger UI — try every endpoint in the browser |
-| `http://localhost:8420/redoc` | ReDoc — alternative read-only reference |
-
-Every endpoint except `/api/v1/auth/login`, `/refresh`, and `/mfa/verify`
-requires a bearer token. In Swagger UI, call `/api/v1/auth/login` first, then
-click **Authorize** and paste the returned `access_token`.
-
-### Environment variables
-
-All database settings can be provided via environment variables instead of CLI flags or a YAML file. Each uses the `CONFIGFOUNDRY_DB_` prefix:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CONFIGFOUNDRY_DB_PROVIDER` | `sqlite` | Storage backend (`sqlite`, `postgresql`, `mysql`, `sqlserver`) |
-| `CONFIGFOUNDRY_DB_SQLITE_PATH` | `db/configfoundry.db` | Path to SQLite file (or `:memory:`) |
-| `CONFIGFOUNDRY_DB_CONNECTION_URL` | — | Full SQLAlchemy URL for non-SQLite backends |
-| `CONFIGFOUNDRY_DB_POOL_SIZE` | `5` | Connection pool size |
-| `CONFIGFOUNDRY_DB_MAX_OVERFLOW` | `10` | Max connections above pool size |
-| `CONFIGFOUNDRY_DB_ECHO` | `false` | Log all SQL statements (`true`/`false`) |
-
-Logging is configured separately with `CONFIGFOUNDRY_LOG_*` variables:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CONFIGFOUNDRY_LOG_LEVEL` | `INFO` | Minimum log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) |
-| `CONFIGFOUNDRY_LOG_FILE` | — | Log file path; omit for console-only |
-| `CONFIGFOUNDRY_LOG_CONSOLE` | `true` | Write to stderr (`true`/`false`) |
-| `CONFIGFOUNDRY_LOG_JSON` | `false` | Emit JSON lines instead of human-readable text |
-| `CONFIGFOUNDRY_LOG_ROTATION` | `daily` | `daily`, `size`, or `none` |
-| `CONFIGFOUNDRY_LOG_BACKUP_COUNT` | `7` | Number of rotated files to keep |
-| `CONFIGFOUNDRY_LOG_MAX_BYTES` | `10485760` | Max file size before rotation (rotation=size only) |
-
-Environment variables are read by `AppConfig.from_env()`. To use them with the server, set them before starting:
-
-```bash
-CONFIGFOUNDRY_DB_SQLITE_PATH=/mnt/shared/configfoundry.db \
-CONFIGFOUNDRY_LOG_FILE=logs/configfoundry.log \
-CONFIGFOUNDRY_LOG_LEVEL=DEBUG \
-python3 server.py
-```
-
-### YAML config file (advanced)
-
-For non-SQLite backends or to version-control your deployment config, pass a YAML file with `--config`:
-
-```yaml
-# config.yaml
-database:
-  provider: postgresql
-  connection_url: "postgresql+psycopg2://user:pass@db-host:5432/configfoundry"
-  pool_size: 10
-  max_overflow: 20
-  echo: false
-
-logging:
-  level: INFO
-  file: logs/configfoundry.log
-  console: true
-  rotation: daily         # daily | size | none
-  backup_count: 7
-  json_format: false      # true to emit JSON lines for log aggregators
-```
-
-```bash
-python3 server.py --config /etc/configfoundry/config.yaml --port 8420
-```
-
-If `--db` is also supplied alongside `--config`, it overrides `sqlite_path` in the YAML. Passwords in connection URLs are masked in console output.
-
-See [`docs/storage-architecture.md`](docs/storage-architecture.md) for the full storage config reference and a guide to adding new database backends. See [`docs/logging.md`](docs/logging.md) for the full logging reference.
-
-### Production startup
-
-For production, bypass `server.py` and run uvicorn directly with multiple workers:
-
-```bash
-# Create a module-level app instance first (e.g. wsgi.py):
-# from app import create_app
-# from core.storage.config import AppConfig
-# app = create_app(config=AppConfig.from_env())
-
-uvicorn wsgi:app \
-  --host 0.0.0.0 \
-  --port 8420 \
-  --workers 4 \
-  --log-level warning \
-  --no-access-log
-```
-
-Or with gunicorn and the uvicorn worker class:
-
-```bash
-gunicorn wsgi:app \
-  -k uvicorn.workers.UvicornWorker \
-  --bind 0.0.0.0:8420 \
-  --workers 4
-```
-
-Put a reverse proxy (nginx, Caddy, Traefik) in front for TLS termination, rate limiting, and access control.
-
-## Features
-
-> A screenshot of the Dashboard and the Network Tree belongs here. Neither is in
-> this revision yet &mdash; treat the descriptions below as unverified until you've
-> run it yourself.
-
-### Inventory management
-
-- **Devices, Bandwidth Capping, and Subnets** &mdash; full CRUD for your inventory,
-  with both a sortable table view and a card view, instant client-side search,
-  pagination (10/25/50/100/All rows, with your preference remembered), and a
-  responsive layout down to mobile. Click any column header to sort &mdash; click
-  again to reverse. All of this runs entirely in the browser, so it works exactly
-  the same whether the server is on your LAN or unreachable.
-- **Generate YAML** &mdash; one config file per Collector Region, built from your
-  current devices and bandwidth caps, with live preview and download. Devices
-  configured for ICMP or SNMP Trap automatically hide the SNMPv3 credential form
-  entirely, live, as you change the Config Type &mdash; since they don't need it.
-- **IP address validation** &mdash; both client-side (instant feedback while
-  typing) and server-side (so a bad value can't sneak in through the API directly).
-  Rows with an invalid IP or CIDR are skipped during import with a clear count
-  rather than silently corrupting your data.
-- **Excel import/export** &mdash; export your current data as an `.xlsx` template
-  (including your custom tag columns), edit it offline, and re-import with a merge
-  or replace mode. Credential column headers are alias-tolerant (`Auth Key`,
-  `authKey`, `AuthKey` all map to the same field).
-
-### Dynamic tags
-
-- **Collector Region is the one fixed concept** &mdash; mandatory, and it's what
-  Generate YAML groups files by. Everything else &mdash; Device Class, Region,
-  Environment, Country, or anything you invent &mdash; is created on demand
-  through **Manage Tags**, not hardcoded. A tag only exists once you create it.
-- **One tag, many sections** &mdash; a tag can apply to Devices, Bandwidth
-  Capping, and Subnets all at once, sharing a single value list across every
-  section it's enabled for. Define "Environment" once, use it everywhere. Tag
-  *creation* happens on **Manage Tags**; every tag's *value list* (alongside
-  Collector Region's) lives on **Manage Lists**, so there's one place to curate
-  every dropdown's options.
-- **Tags render as real columns** &mdash; each tag shows up as its own column in
-  every table (header = tag name, cell = value or empty), not packed into one
-  generic "Tags" column.
-- **Subnet-based tag inheritance** &mdash; tag a subnet once by CIDR instead of
-  tagging every device in it individually. Any device whose IP falls inside that
-  range inherits the tag for any value it doesn't already set itself, and the
-  matched subnet is written into the generated YAML (`subnet: 10.1.1.0/24`) so
-  it's traceable from the output alone.
-- **Deleting something in use asks first.** Removing a tag, a tag value, or a
-  Collector Region that's still referenced warns you with the affected record
-  count before letting you proceed, and deleting a tag definition never deletes
-  the records that used it &mdash; only the tag reference on them. (Same rule
-  applies to the `DELETE /api/tags/{id}` endpoint &mdash; see REST API below.)
-
-### Network Tree
-
-Browsing hundreds of devices as a flat table makes it hard to see how your
-network is actually laid out. The Network Tree is a spatial diagram instead:
-Subnets on the left, branching to the Devices inside each one, branching to
-that device's Bandwidth Capping rows on the right &mdash; built so you can pan
-and zoom around a few hundred devices without losing your place.
-
-- **Pan and zoom, Google-Maps style**, with independent scrolling per column so
-  a bucket with hundreds of devices doesn't make the whole diagram unusably
-  tall.
-- **Click a card to drill in** (subnet &rarr; its devices &rarr; their
-  bandwidth rows); click the already-selected card again for a details panel
-  with an **Edit** button that opens the same form used everywhere else in the
-  app. Editing from the diagram updates your data immediately.
-- **Hover to trace a connection** &mdash; highlights the connector lines down
-  to everything beneath the card you're hovering, so you can see at a glance
-  what belongs to what.
-- **Unassigned buckets** for devices with no matching subnet and bandwidth rows
-  with no matching device, instead of either disappearing silently.
-- **Filter with `key:value` queries** (`collector_region:india`,
-  `country:"AWS US"` &mdash; quote multi-word values) or the dropdowns next to
-  the filter bar. Filtering narrows what's shown; it never changes the
-  diagram's shape.
-
-### Everything else
-
-- **Dashboard** &mdash; inventory totals with icon-bearing stat cards, breakdowns
-  by Collector Region and any custom tag (correctly accounting for
-  subnet-inherited values, not just directly-stored ones), generation status, and
-  a recent-activity feed.
-- **Dark and light mode** &mdash; toggle in the top bar, remembered in your
-  browser, applied before the page even paints so there's no flash of the wrong
-  theme.
-- **Audit log + YAML history** &mdash; every change is attributed to whoever made
-  it (a one-time name prompt, required and remembered permanently in your
-  browser, not a login system), and every generation is saved so you can look
-  back at what was produced and when.
-- **Minimal, well-known dependencies.** The backend runs on FastAPI, SQLAlchemy 2.x, Pydantic v2, and uvicorn — all installable with a single `pip install -r requirements.txt`. AES-256-GCM credential encryption and the YAML serializer remain pure-Python with no additional dependencies.
-- **Safe upgrades.** Every schema change ships as a versioned, idempotent
-  migration that runs automatically on server startup (see
-  [Upgrading](#upgrading) below) &mdash; updating to a new version is just
-  "copy in the new files, restart."
-
-## Limitations and non-goals
-
-Things ConfigFoundry deliberately does not try to be, so you can decide quickly
-whether it fits:
-
-- **Not a CMDB.** It tracks the fields needed to generate monitoring config
-  (IP, region, credentials, a handful of tags) &mdash; it doesn't model
-  ownership, lifecycle, warranty, or asset relationships beyond
-  subnet/device/bandwidth.
-- **Single-tenant inventory, multi-tenant auth.** The RBAC/API-key/policy
-  layer is fully organization-scoped, but the inventory tables themselves
-  (devices, bandwidth, subnets, etc.) aren't yet split per-organization --
-  see [`docs/authentication.md`](docs/authentication.md#known-scope-boundaries).
-- **Single shared SQLite file, no locking beyond SQLite's own WAL mode.**
-  Two people editing the same record at the same moment: last write wins,
-  there's no optimistic-locking or conflict warning. For the team-sized usage
-  this was built for (a handful of people maintaining a shared inventory,
-  not editing the same device simultaneously) this hasn't been a problem in
-  practice, but it's not battle-tested under heavy concurrent write load and
-  you should know that going in.
-- **Test suite covers the backend only.** The `tests/` directory contains 577 passing tests across repositories, services, handlers, the storage abstraction layer, the logging framework, database migrations, and the authentication/RBAC/policy layer. Frontend behaviour is still verified by hand against a real browser.
-
-## Upgrading
-
-Updating ConfigFoundry is: copy the new `.py` and `static/` files over the old ones, restart the server. That's the whole process — no manual migration script to remember, no risk of forgetting a step.
-
-Database schema changes are managed by [Alembic](https://alembic.sqlalchemy.org/) (the standard SQLAlchemy migration toolkit). On every startup, `core.migrations.runner` calls `alembic upgrade head`, which applies any migrations that haven't yet run on the live database — and is a no-op if the database is already current. If a migration fails, the server aborts startup and the database is left exactly as it was.
-
-**Existing databases are automatically detected.** Databases created before Alembic was introduced (schema_version 4 in the old `meta` table) are detected on first startup and stamped at the baseline revision without any DDL changes. All data is preserved.
-
-Historical data migrations (e.g. when Device Class / Device Category moved from hardcoded fields to the dynamic tag system) live in `core/migrations_legacy.py` for reference.
-
-See [`docs/database-migrations.md`](docs/database-migrations.md) for the full migration reference: CLI commands, how to add a new migration, rollback procedures, multi-database support, and developer guidelines.
-
-## Security
-
-ConfigFoundry ships with a full authentication, RBAC, and Access Policy Engine
-layer &mdash; the API is no longer open by default. Every request needs a
-`Bearer` token: either a user JWT from `/api/v1/auth/login`, or a service-account
-API key from `/api/v1/api-keys`. Full details, configuration reference, and a
-SOC 2 control mapping live in [`docs/authentication.md`](docs/authentication.md)
-and [`docs/compliance-soc2.md`](docs/compliance-soc2.md); the short version:
-
-* **Passwords**: Argon2id-hashed, never stored or logged in plaintext.
-* **Tokens**: short-lived JWT access tokens + rotating, hashed refresh tokens
-  with reuse detection.
-* **MFA**: TOTP (RFC 6238) with backup codes, optional per-role.
-* **RBAC**: fine-grained permission codes, never a hardcoded role check;
-  five system roles plus unlimited custom roles.
-* **Access Policy Engine**: IP allow/deny rules evaluated before authentication.
-* **Audit log**: every security-sensitive action (login, role change, API key
-  creation, access denial, etc.) is recorded with actor, IP, and result.
-
-The very first startup seeds one Super Admin account &mdash; set
-`CONFIGFOUNDRY_AUTH_BOOTSTRAP_EMAIL` / `CONFIGFOUNDRY_AUTH_BOOTSTRAP_PASSWORD`
-beforehand, or a random password is generated and printed once to the
-server log.
-
-SNMPv3 `authKey`/`privKey` values are separately encrypted at rest with
-AES-256-GCM, using a static key embedded in the device repository (see the
-comment there for why that literal must never be edited). This protects the
-raw `.db` file itself (e.g. if someone copies it off a shared drive or finds
-it in a backup) and is unrelated to the auth layer above, which protects the
-running application.
-
-Multi-tenancy note: the auth/RBAC/policy layer is fully organization-scoped,
-but the pre-existing inventory tables (devices, bandwidth, subnets, etc.) are
-not yet retrofitted with `org_id` &mdash; see "Known scope boundaries" in
-`docs/authentication.md`.
-
-## Architecture
-
-The backend follows a layered architecture introduced in v0.5. Each layer has a single responsibility and depends only on the layer below it through well-defined interfaces.
-
-```
-HTTP layer       FastAPI routes (api/) — receive requests, validate with Pydantic v2, call services
-Service layer    core/services/ — pure business logic, no HTTP or DB code
-Repository layer core/repositories/ — data access via ABC interfaces; SQLAlchemy implementations
-Storage layer    core/storage/ — StorageProvider ABC + factory; SQLiteProvider (full), PostgreSQL/MySQL/SQL Server (scaffolds)
-Migration layer  alembic/ + core/migrations/ — Alembic-managed schema versioning, auto-applied at startup
-Logging layer    core/logging/ — centralized logging, structured output, correlation IDs, log rotation
-```
-
-The `StorageProvider` abstraction means repositories never import a database driver directly. Swapping the backend is a config change, not a code change. The logging framework means every component emits structured, correlated records through one root logger — no `logging.basicConfig()` anywhere.
-
-```
-server.py                    entry point — CLI args, AppConfig assembly, configure_logging(), uvicorn startup
-app.py                       FastAPI application factory (create_app, lifespan, middleware)
-core/
-  container.py               DI container — wires provider → repos → services
-  logging/
-    __init__.py              Public API: configure_logging(), get_logger(), get_request_id(), …
-    config.py                LoggingConfig (YAML / env / defaults)
-    context.py               ContextVar-based request ID propagation
-    factory.py               get_logger(__name__)  →  configfoundry.* namespace
-    formatters.py            ConfigFoundryFormatter (text) + JSONFormatter
-    handlers.py              build_console_handler(), build_file_handler() with rotation
-    middleware.py            CorrelationIDMiddleware + RequestLoggingMiddleware
-    startup.py               log_startup_info(), log_shutdown_info()
-  storage/
-    provider.py              StorageProvider ABC, HealthCheckResult, ProviderCapabilities
-    config.py                DatabaseConfig, AppConfig (YAML / env / dict constructors)
-    factory.py               StorageFactory registry (sqlite, postgresql, mysql, sqlserver + aliases)
-    providers/
-      sqlite.py              SQLiteProvider — fully functional (WAL mode, migrations, seeding)
-      postgresql.py          PostgreSQLProvider — scaffold (interface-compliant, initialize() raises)
-      mysql.py               MySQLProvider — scaffold
-      sqlserver.py           SQLServerProvider — scaffold
-  migrations/
-    runner.py                Programmatic Alembic API — run_migrations(engine)
-  migrations_legacy.py       Legacy custom migration system (reference only, not called)
-  repositories/
-    interfaces/              ABC interfaces for every entity (IDeviceRepository, etc.)
-    sqlalchemy/              SQLAlchemy 2.x implementations (8 repos, all accept StorageProvider)
-  services/                  Business logic services (DeviceService, GenerateService, etc.)
-alembic/
-  env.py                     Alembic environment — multi-provider connection wiring
-  versions/
-    0001_baseline_schema.py  Baseline: creates all 8 tables (revision c1f4e7a8b2d0)
-alembic.ini                  Alembic config (default SQLite URL, script location)
-api/
-  dependencies.py            Depends(get_container) — resolves ServiceContainer from request.app.state
-  v1/
-    router.py                Central v1 router (prefix="/v1", VERSION="v1", PREFIX="/api/v1")
-    devices.py  bandwidth.py FastAPI routers (one per entity)
-    subnets.py  tags.py  …
-schemas/common.py            Pydantic v2 request/response models
-logic.py                     Core YAML conversion — pure functions, no HTTP or DB code
-aesgcm.py                    AES-256-GCM credential encryption
-static/
-  app.js                     Shell: routing, global state, sidebar/topbar, theme toggle
-  devices.js  bandwidth.js   Entity views
-  networktree.js             Pan/zoom network diagram
-  api.js                     Thin fetch() wrapper for every backend endpoint
-  ui.js                      Icons, toasts, modals, shared helpers
-```
-
-The frontend was refactored in v0.5 to **Next.js 15 (App Router) + TypeScript + TanStack Query**. For production, `make build` compiles it to `frontend/out/` which FastAPI serves as static files — no Node process at runtime. The legacy `static/` vanilla-JS UI remains as a fallback. See the [Frontend](#frontend-nextjs) section above for setup and workflow details.
-
-See [`docs/storage-architecture.md`](docs/storage-architecture.md) for the full Storage Abstraction Layer reference, including how to add a new database backend in five steps. See [`docs/logging.md`](docs/logging.md) for the full logging framework reference.
-
-## Logging
-
-Every request is tagged with a 12-character hex correlation ID (`X-Request-ID` header) that appears in every log line emitted during that request. The access log line looks like:
-
-```
-2024-01-15 10:30:45 INFO     configfoundry.http    [a3f8c2d1e5b4] GET /api/v1/devices → 200 (12.3ms) ip=127.0.0.1
-```
-
-All application code acquires a logger with `get_logger(__name__)` from `core.logging`. The `configure_logging()` function is called once in `server.py` before `create_app()`, reads from `AppConfig.logging` (populated from the YAML `logging:` section or `CONFIGFOUNDRY_LOG_*` env vars), and attaches handlers to the single `configfoundry` root logger. No module calls `logging.basicConfig()` directly.
-
-Request bodies are never logged. Exceptions are logged with full traceback on the server; clients receive only `{"error": "...", "type": "..."}`.
-
-See [`docs/logging.md`](docs/logging.md) for the complete reference: configuration, log formats (text and JSON), correlation IDs, rotation modes, audit log separation design, and how to add a new log destination.
-
-## API Versioning
-
-All REST endpoints are versioned under `/api/v1/`. The version is part of the URL, not a header, so different versions can coexist on the same running server.
-
-### Current endpoints (v1)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/v1/devices` | List all devices |
-| `POST` | `/api/v1/devices` | Create or update a device |
-| `DELETE` | `/api/v1/devices/{id}` | Delete a device |
-| `POST` | `/api/v1/devices/validate-import` | Validate a bulk device import (no DB write) |
-| `POST` | `/api/v1/devices/import` | Bulk import (merge or replace) |
-| `GET` | `/api/v1/bandwidth` | List all bandwidth rows |
-| `GET` | `/api/v1/subnets` | List all subnets |
-| `GET` | `/api/v1/tags` | List all tag definitions |
-| `POST` | `/api/v1/generate` | Generate YAML from current data |
-| `GET` | `/api/v1/export/devices.xlsx` | Download devices as Excel |
-
-The full list is available at **`http://localhost:8420/docs`** (Swagger UI).
-
-### How to add v2
-
-1. Create `api/v2/` with the same layout as `api/v1/`:
-   ```
-   api/v2/__init__.py
-   api/v2/router.py          # APIRouter(prefix="/v2"), includes sub-routers
-   api/v2/devices.py         # override or extend endpoint behaviour
-   # … other modules as needed
-   ```
-
-2. In `api/v2/router.py`, define or import the new endpoint logic:
-   ```python
-   from fastapi import APIRouter
-   from api.v2 import devices   # new v2 implementation
-   # optionally re-export unchanged v1 routers:
-   from api.v1 import bandwidth, subnets, ...
-
-   router = APIRouter(prefix="/v2")
-   router.include_router(devices.router,   tags=["v2-devices"])
-   router.include_router(bandwidth.router, tags=["bandwidth"])
-   ```
-
-3. Register the new router in `app.py` alongside v1:
-   ```python
-   from api.v1.router import router as v1_router
-   from api.v2.router import router as v2_router
-
-   app.include_router(v1_router, prefix="/api")
-   app.include_router(v2_router, prefix="/api")
-   ```
-   Both versions coexist under the same FastAPI app. The combined OpenAPI spec at `/docs` shows `/api/v1/` and `/api/v2/` paths side by side.
-
-4. **Mount `StaticFiles` last** — after all `include_router` calls — so the catch-all static handler does not shadow the new versioned routes.
-
-### Versioning rules
-
-- Business logic lives in `core/services/`. Routers only translate HTTP ↔ service calls. Changing behaviour in v2 means writing new service methods or new service classes — not touching v1 routers.
-- Schemas live in `schemas/`. A v2 router can use different Pydantic models while the underlying services remain the same.
-- Never modify a v1 router after it ships — create v2 instead.
-- Version-specific tests live in `tests/api/test_versioning.py`.
-
----
-
-## REST API
-
-All endpoints are under `/api/v1/`. A few representative examples:
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/v1/devices` | List all devices |
-| `POST` | `/api/v1/devices` | Create or update a device |
-| `DELETE` | `/api/v1/devices/{id}` | Delete a device |
-| `POST` | `/api/v1/devices/import` | Bulk import (merge or replace) |
-| `GET` | `/api/v1/subnets` | List all subnets |
-| `GET` | `/api/v1/tags` | List all tag definitions |
-| `POST` | `/api/v1/tags` | Create or update a tag definition |
-| `DELETE` | `/api/v1/tags/{id}` | Delete a tag (409 if in use, unless `?force=true`) |
-| `POST` | `/api/v1/generate` | Generate YAML from current data, save a history entry |
-| `GET` | `/api/v1/export/devices.xlsx` | Download devices as an Excel template |
-
-The complete request/response contract is available interactively at **`http://localhost:8420/docs`** (Swagger UI) once the server is running. Every endpoint is documented with its expected body, parameters, and response shape.
+## Documentation
+
+The full documentation set lives in [`docs/`](docs/index.md) and is also
+browsable inside the running app at **`/docs`**, with search, dark/light
+theme, and a table of contents — fully static, works offline. Highlights:
+
+| Topic | Page |
+|---|---|
+| First run walkthrough | [docs/getting-started.md](docs/getting-started.md) |
+| Every installation method | [docs/installation.md](docs/installation.md) |
+| Zero-internet-access deployment | [docs/airgap.md](docs/airgap.md) |
+| System design, request lifecycle, diagrams | [docs/architecture.md](docs/architecture.md) |
+| Every REST endpoint | [docs/api.md](docs/api.md) |
+| Auth, RBAC, MFA, API keys, IP policies | [docs/security.md](docs/security.md) |
+| Every config option / env var | [docs/configuration.md](docs/configuration.md) |
+| Production deployment & hardening | [docs/deployment.md](docs/deployment.md), [docs/enterprise.md](docs/enterprise.md) |
+| Common problems, real fixes | [docs/troubleshooting.md](docs/troubleshooting.md) |
+
+Interactive API docs (Swagger UI / ReDoc, self-hosted, no CDN) are always
+available at `http://localhost:8420/docs` and `/redoc` on a running instance.
+
+## Air-gap deployment
+
+Every dependency is vendored and pinned; every static asset is self-hosted.
+`install_offline.sh`/`.ps1` install and run ConfigFoundry with **zero
+internet access** — no PyPI, npm registry, GitHub, or CDN of any kind —
+verified automatically by `scripts/validate_airgap.py` and a CI job that
+firewalls the runner off from PyPI before proving the install still works.
+Release bundles (`ConfigFoundry-Offline-vX.Y.Z.zip`) ship everything needed
+in one archive. Full explanation: [docs/airgap.md](docs/airgap.md).
+
+## Enterprise features
+
+Built for regulated and locked-down environments: banks, government,
+defense, healthcare, telecom. Argon2id + JWT + rotating refresh tokens +
+TOTP MFA + API keys, permission-code RBAC (never a hardcoded role check), an
+IP-based Access Policy Engine, a full audit trail, and a same-origin-only
+Content-Security-Policy with no CDN dependency anywhere. See
+[docs/enterprise.md](docs/enterprise.md) for the pre-go-live checklist and
+[docs/security.md](docs/security.md) for the full security model.
+
+## Roadmap
+
+Highest priority right now: porting the Network Tree diagram to the
+current frontend (see Features above), an Inventory Validation Engine, and
+operational observability (`/health`, `/metrics`). Full list, plus what's
+deliberately out of scope: [docs/roadmap.md](docs/roadmap.md).
 
 ## Contributing
 
-This is a young project &mdash; I'm the sole maintainer so far. Issues and pull
-requests are welcome at
+Issues and pull requests are welcome at
 [github.com/shivamsancc/ConfigFoundry](https://github.com/shivamsancc/ConfigFoundry).
-
 The project optimizes for running on locked-down, offline, single-team
-infrastructure over almost anything else. If a PR trades that away for
-convenience &mdash; a new pip dependency, a build step, an assumption that the
-internet is reachable &mdash; expect pushback on the tradeoff, not the code
-itself. A few more specific things worth knowing before you dive in:
-
-- **Any schema change goes in `migrations.py`**, never as an ad-hoc `ALTER` in a repository or provider. Add a new numbered `migrate_N` function; never edit an existing one after release. If you're adding a new entity type alongside Devices/Bandwidth/Subnets, the pattern is: migration in `migrations.py`, ORM model in `models/`, ABC interface in `core/repositories/interfaces/`, SQLAlchemy implementation in `core/repositories/sqlalchemy/`, service in `core/services/`, FastAPI router in `api/`, Pydantic schemas in `schemas/`, wired up in `core/container.py`, and a JS view in `static/` following `subnets.js` as the simplest template.
-- Keep new pip dependencies to a minimum. The core stack (FastAPI, SQLAlchemy, Pydantic, uvicorn) is established; anything new needs a strong justification. Optional-feature dependencies should be gated behind a `try/except` with a clear fallback message.
-- The frontend has no build step on purpose. Please don't introduce one without
-  discussing it first &mdash; that's a deliberate tradeoff, not an oversight.
-- `yamldump.py` and `aesgcm.py` are both verified against their "real"
-  counterparts (PyYAML and pycryptodome) in extensive fuzz tests during
-  development. If you touch either file, please re-verify against the real
-  library before submitting.
-- `networktree.js`'s pan/zoom clamps panning and zooming so content can never
-  drift fully out of view (see `clampZoomToContent`). If you touch the zoom
-  math, test with a real button-click zoom-in followed by selecting a large
-  bucket &mdash; that combination is what originally exposed the bug this
-  guards against.
+infrastructure over almost anything else — a PR that trades that away for
+convenience (a new dependency, an assumption the internet is reachable)
+should expect pushback on the tradeoff, not the code itself. Full guide,
+including a few codebase-specific gotchas worth knowing before you dive in:
+[docs/contributing.md](docs/contributing.md).
 
 ## License
 
-MIT &mdash; see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).

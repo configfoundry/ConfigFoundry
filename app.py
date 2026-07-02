@@ -55,6 +55,7 @@ from typing import Optional
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -172,6 +173,12 @@ def create_app(
         ),
         version=APP_VERSION,
         lifespan=_lifespan,
+        # Swagger UI / ReDoc are served from self-hosted, vendored assets
+        # (see the custom /docs and /redoc routes below) instead of
+        # FastAPI's default CDN-backed pages -- see the comment there for
+        # why. openapi_url stays at the default "/openapi.json".
+        docs_url=None,
+        redoc_url=None,
         openapi_tags=[
             {"name": "devices",   "description": "Network device inventory"},
             {"name": "bandwidth", "description": "Interface bandwidth caps"},
@@ -210,6 +217,43 @@ def create_app(
             {"error": str(exc), "type": type(exc).__name__},
             status_code=500,
         )
+
+    # ------------------------------------------------------------------
+    # Interactive API docs (/docs, /redoc) — self-hosted assets
+    #
+    # FastAPI's default /docs and /redoc load their JS/CSS from public CDNs
+    # (cdn.jsdelivr.net, fonts.googleapis.com). That's fine for a same-origin
+    # -only CSP-free app, but this app enforces a strict same-origin CSP
+    # (SecurityHeadersMiddleware) and is meant to run in locked-down /
+    # offline-capable environments -- both make an external CDN dependency
+    # the wrong default here (consistent with the "minimal external
+    # dependencies" requirement the rest of the auth system follows). The
+    # Swagger UI and ReDoc JS/CSS bundles are vendored into static/vendor/docs/
+    # (Apache-2.0 and MIT respectively) and served from this app instead.
+    # ------------------------------------------------------------------
+    _docs_assets_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "vendor", "docs")
+    if os.path.isdir(_docs_assets_dir):
+        app.mount("/vendor-docs", StaticFiles(directory=_docs_assets_dir), name="vendor-docs")
+
+        @app.get("/docs", include_in_schema=False)
+        async def custom_swagger_ui_html():
+            return get_swagger_ui_html(
+                openapi_url=app.openapi_url,
+                title=f"{app.title} - Swagger UI",
+                swagger_js_url="/vendor-docs/swagger-ui-bundle.js",
+                swagger_css_url="/vendor-docs/swagger-ui.css",
+                swagger_favicon_url="/favicon.ico",
+            )
+
+        @app.get("/redoc", include_in_schema=False)
+        async def custom_redoc_html():
+            return get_redoc_html(
+                openapi_url=app.openapi_url,
+                title=f"{app.title} - ReDoc",
+                redoc_js_url="/vendor-docs/redoc.standalone.js",
+                redoc_favicon_url="/favicon.ico",
+                with_google_fonts=False,
+            )
 
     # ------------------------------------------------------------------
     # Middleware  (LAST added = FIRST to run)
