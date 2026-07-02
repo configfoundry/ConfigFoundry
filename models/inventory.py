@@ -1,5 +1,5 @@
 """
-SQLAlchemy 2.x ORM models for ConfigForge.
+SQLAlchemy 2.x ORM models for ConfigFoundry.
 
 The physical schema is unchanged from the sqlite3 era:
   - Entity tables (devices, bandwidth_caps, subnets, tag_defs):
@@ -66,6 +66,21 @@ class AuditLogModel(Base):
     actor: Mapped[Optional[str]] = mapped_column(String)
     action: Mapped[str] = mapped_column(String, nullable=False)
     details: Mapped[Optional[str]] = mapped_column(Text)
+
+    # ------------------------------------------------------------------
+    # Security-event fields (added for the auth/RBAC/policy layer).
+    # All nullable so every pre-existing call site (device/bandwidth/
+    # subnet/tag change events) keeps working unchanged -- only auth and
+    # policy code populates these.
+    # ------------------------------------------------------------------
+    org_id: Mapped[Optional[str]] = mapped_column(String)
+    actor_type: Mapped[Optional[str]] = mapped_column(String)   # user | api_key | system
+    source_ip: Mapped[Optional[str]] = mapped_column(String)
+    user_agent: Mapped[Optional[str]] = mapped_column(String)
+    resource_type: Mapped[Optional[str]] = mapped_column(String)
+    resource_id: Mapped[Optional[str]] = mapped_column(String)
+    result: Mapped[Optional[str]] = mapped_column(String)       # success | failure | denied
+    correlation_id: Mapped[Optional[str]] = mapped_column(String)
 
 
 # ---------------------------------------------------------------------------

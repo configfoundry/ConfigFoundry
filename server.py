@@ -6,7 +6,7 @@ Usage
 ::
 
     python3 server.py
-    python3 server.py --db /path/to/shared/configforge.db --port 8420
+    python3 server.py --db /path/to/shared/configfoundry.db --port 8420
     python3 server.py --config /etc/configfoundry/config.yaml --port 8420
 
 The ``--config`` flag accepts a YAML file that can specify any
@@ -42,7 +42,7 @@ def parse_args():
         help=(
             "Path to the SQLite database file.  "
             "Overrides the sqlite_path in --config if both are supplied.  "
-            f"Default (when no --config): {os.path.join(here, 'configforge.db')}"
+            f"Default (when no --config): {os.path.join(here, 'configfoundry.db')}"
         ),
     )
     p.add_argument(
@@ -73,7 +73,7 @@ def build_config(args) -> AppConfig:
     Priority:
     1. ``--config`` YAML file (if supplied)
     2. ``--db`` flag overrides ``sqlite_path`` in the YAML
-    3. Defaults (SQLite, ``db/configforge.db``)
+    3. Defaults (SQLite, ``db/configfoundry.db``)
     """
     if args.config:
         cfg = AppConfig.from_yaml(args.config)
@@ -83,7 +83,7 @@ def build_config(args) -> AppConfig:
         cfg = AppConfig.for_sqlite(args.db)
     else:
         here = os.path.join(os.path.dirname(os.path.abspath(__file__)), "db")
-        cfg = AppConfig.for_sqlite(os.path.join(here, "configforge.db"))
+        cfg = AppConfig.for_sqlite(os.path.join(here, "configfoundry.db"))
 
     return cfg
 

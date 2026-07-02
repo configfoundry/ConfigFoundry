@@ -15,7 +15,7 @@ Programmatic (from ``core.migrations.runner``)
 
 CLI (``alembic upgrade head``, ``alembic revision --autogenerate``, etc.)
     No pre-existing connection is available.  The URL is read from:
-    1. ``CONFIGFORGE_DB_URL`` environment variable
+    1. ``CONFIGFOUNDRY_DB_URL`` environment variable
     2. ``sqlalchemy.url`` in ``alembic.ini``
     3. The ``--url`` CLI flag (Alembic handles this automatically)
 
@@ -114,13 +114,13 @@ def _get_url() -> str:
     Resolve the database URL for CLI usage.
 
     Priority:
-    1. ``CONFIGFORGE_DB_URL`` environment variable
+    1. ``CONFIGFOUNDRY_DB_URL`` environment variable
     2. ``sqlalchemy.url`` in ``alembic.ini``
     """
-    env_url = os.environ.get("CONFIGFORGE_DB_URL")
+    env_url = os.environ.get("CONFIGFOUNDRY_DB_URL")
     if env_url:
         return env_url
-    return config.get_main_option("sqlalchemy.url", "sqlite:///db/configforge.db")
+    return config.get_main_option("sqlalchemy.url", "sqlite:///db/configfoundry.db")
 
 
 def _configure_context(connection) -> None:
@@ -188,7 +188,7 @@ def run_migrations_online() -> None:
     invocations, including ``:memory:`` SQLite databases in tests.
 
     Otherwise, a new engine is created from the URL in ``alembic.ini`` or
-    the ``CONFIGFORGE_DB_URL`` environment variable.  This is the path taken
+    the ``CONFIGFOUNDRY_DB_URL`` environment variable.  This is the path taken
     when running Alembic from the CLI.
     """
     # --- Programmatic mode: caller provides an existing connection ----------

@@ -1,4 +1,4 @@
-# 🗺️ ConfigForge Roadmap
+# 🗺️ ConfigFoundry Roadmap
 
 > **Vision:** Build the open-source infrastructure governance platform for modern enterprises.
 
@@ -6,7 +6,7 @@
 
 # Guiding Principles
 
-Before adding new features, ConfigForge will prioritize:
+Before adding new features, ConfigFoundry will prioritize:
 
 * 🏗️ Strong architecture over rapid feature additions
 * 🔒 Security and compliance by design
@@ -303,4 +303,4 @@ The following will not be prioritized unless driven by customer demand:
 * Theme customization
 * Cosmetic UI enhancements
 
-ConfigForge will focus on solving real enterprise infrastructure governance problems before expanding into adjacent areas.
+ConfigFoundry will focus on solving real enterprise infrastructure governance problems before expanding into adjacent areas.

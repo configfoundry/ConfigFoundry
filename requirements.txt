@@ -4,3 +4,12 @@ alembic>=1.13.0
 pydantic>=2.0.0
 uvicorn[standard]>=0.20.0
 httpx>=0.24.0   # FastAPI TestClient transport
+
+# --- Authentication / security (added for the auth & RBAC layer) ---
+argon2-cffi>=23.1.0   # Argon2id password hashing (OWASP-recommended KDF)
+pyjwt>=2.8.0          # JWT access-token encode/decode (HS256/RS256)
+pyotp>=2.9.0          # RFC 6238 TOTP for MFA
+cryptography>=42.0.0  # audited AES-256-GCM for at-rest secret encryption
+                       # (MFA seeds, signing material) -- NOT core/aesgcm.py,
+                       # which is explicitly documented as unsuitable for
+                       # anything security-critical (not constant-time).

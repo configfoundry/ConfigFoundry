@@ -1,5 +1,5 @@
 """
-Pydantic v2 schemas for ConfigForge's REST API.
+Pydantic v2 schemas for ConfigFoundry's REST API.
 
 Design notes
 ------------

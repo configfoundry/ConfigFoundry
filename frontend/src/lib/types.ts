@@ -189,3 +189,128 @@ export interface ImportResponse {
   deleted?: number
   skipped?: number
 }
+
+// ---------------------------------------------------------------------------
+// Auth / RBAC / policy
+// ---------------------------------------------------------------------------
+
+export interface TokenPair {
+  access_token: string
+  refresh_token: string
+  token_type: string
+  expires_in: number
+}
+
+export interface MfaRequiredResponse {
+  mfa_required: true
+  mfa_token: string
+}
+
+export type LoginResponse = TokenPair | MfaRequiredResponse
+
+export interface MeResponse {
+  kind: 'user' | 'api_key'
+  id: string
+  email?: string
+  full_name?: string
+  name?: string
+  org_id: string | null
+  mfa_enabled?: boolean
+  must_change_password?: boolean
+  roles?: { id: string; name: string }[]
+  permissions: string[]
+}
+
+export interface AppUser {
+  id: string
+  org_id: string
+  email: string
+  username?: string | null
+  full_name?: string | null
+  is_active: boolean
+  is_verified: boolean
+  mfa_enabled: boolean
+  must_change_password: boolean
+  last_login_at: number | null
+  created_at: number
+  updated_at: number
+  roles?: Role[]
+}
+
+export interface Permission {
+  id: string
+  code: string
+  category?: string | null
+  description?: string | null
+}
+
+export interface Role {
+  id: string
+  org_id: string | null
+  name: string
+  description?: string | null
+  is_system: boolean
+  created_at: number
+  permissions: string[]
+}
+
+export interface ApiKeySummary {
+  id: string
+  org_id: string
+  name: string
+  owner_user_id: string | null
+  key_prefix: string
+  permissions: string[]
+  allowed_ips: string[]
+  environment: string
+  enabled: boolean
+  expires_at: number | null
+  last_used_at: number | null
+  created_at: number
+  revoked_at: number | null
+}
+
+export interface ApiKeyIssued {
+  id: string
+  name: string
+  api_key: string
+  key_prefix: string
+  permissions: string[]
+  expires_at: number | null
+}
+
+export interface NetworkACLRule {
+  id: string
+  org_id: string | null
+  rule_type: 'allow' | 'deny'
+  cidr: string
+  description?: string | null
+  priority: number
+  enabled: boolean
+  created_by?: string | null
+  created_at: number
+}
+
+export interface SessionInfo {
+  id: string
+  issued_at: number
+  expires_at: number
+  source_ip: string | null
+  user_agent: string | null
+}
+
+export interface SecurityAuditEntry {
+  id: string
+  ts: string
+  actor: string | null
+  action: string
+  details: Record<string, unknown> | null
+  org_id?: string | null
+  actor_type?: string | null
+  source_ip?: string | null
+  user_agent?: string | null
+  resource_type?: string | null
+  resource_id?: string | null
+  result?: string | null
+  correlation_id?: string | null
+}

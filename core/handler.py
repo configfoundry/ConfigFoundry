@@ -94,7 +94,7 @@ def _get_container():
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "ConfigForge/1.0"
+    server_version = "ConfigFoundry/1.0"
 
     # -------------------------------------------------------------------
     # Helpers

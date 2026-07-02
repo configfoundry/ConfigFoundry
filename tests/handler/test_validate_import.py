@@ -40,6 +40,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 import core.storage as storage
 from app import create_app
+from tests.auth_helpers import auth_headers
 
 
 # ---------------------------------------------------------------------------
@@ -63,6 +64,10 @@ class _TestClient:
             create_app(container=storage._container),
             raise_server_exceptions=False,
         )
+        # All routes now require authentication -- authenticate as the
+        # bootstrap Super Admin so pre-existing test coverage of endpoint
+        # behavior is unaffected by the new auth layer.
+        self.client.headers.update(auth_headers(storage._container))
 
     def post(self, path: str, payload: dict):
         """POST *payload* as JSON, return (status_code, response_dict)."""

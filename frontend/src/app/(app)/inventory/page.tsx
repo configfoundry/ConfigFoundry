@@ -449,9 +449,12 @@ function DevicesTab() {
           <button className="btn btn-secondary btn-sm" onClick={() => setImportOpen(true)}>
             Import from Excel
           </button>
-          <a className="btn btn-secondary btn-sm" href={api.exportUrl('devices')} download>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => api.exportDownload('devices').catch((e) => toast(e.message, 'error'))}
+          >
             Export XLSX
-          </a>
+          </button>
           <button className="btn btn-primary btn-sm" onClick={() => setEditDevice('new')}>
             + Add Device
           </button>
@@ -610,7 +613,12 @@ function BandwidthTab() {
         </div>
         <div className="toolbar-right">
           <button className="btn btn-secondary btn-sm" onClick={() => setImportOpen(true)}>Import from Excel</button>
-          <a className="btn btn-secondary btn-sm" href={api.exportUrl('bandwidth')} download>Export XLSX</a>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => api.exportDownload('bandwidth').catch((e) => toast(e.message, 'error'))}
+          >
+            Export XLSX
+          </button>
           <button className="btn btn-primary btn-sm" onClick={() => setEditRow('new')}>+ Add Row</button>
         </div>
       </div>
@@ -738,7 +746,12 @@ function SubnetsTab() {
         </div>
         <div className="toolbar-right">
           <button className="btn btn-secondary btn-sm" onClick={() => setImportOpen(true)}>Import from Excel</button>
-          <a className="btn btn-secondary btn-sm" href={api.exportUrl('subnets')} download>Export XLSX</a>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => api.exportDownload('subnets').catch((e) => toast(e.message, 'error'))}
+          >
+            Export XLSX
+          </button>
           <button className="btn btn-primary btn-sm" onClick={() => setEditSubnet('new')}>+ Add Subnet</button>
         </div>
       </div>

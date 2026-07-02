@@ -47,12 +47,12 @@ core/
 
 ## Common CLI commands
 
-Run from the project root. If the default SQLite URL in `alembic.ini` is not what you want, set `CONFIGFORGE_DB_URL`:
+Run from the project root. If the default SQLite URL in `alembic.ini` is not what you want, set `CONFIGFOUNDRY_DB_URL`:
 
 ```bash
-export CONFIGFORGE_DB_URL=sqlite:///db/configforge.db
+export CONFIGFOUNDRY_DB_URL=sqlite:///db/configfoundry.db
 # or
-export CONFIGFORGE_DB_URL=postgresql+psycopg2://user:pass@host:5432/configforge
+export CONFIGFOUNDRY_DB_URL=postgresql+psycopg2://user:pass@host:5432/configfoundry
 ```
 
 ### Apply all pending migrations

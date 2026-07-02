@@ -143,6 +143,7 @@ def run_migrations(engine: Engine) -> None:
         aborting startup on failure.
     """
     from alembic import command
+    from alembic.script import ScriptDirectory
 
     cfg = _make_alembic_config(str(engine.url))
 
@@ -156,16 +157,31 @@ def run_migrations(engine: Engine) -> None:
         if not has_alembic_version and has_app_tables:
             # ----------------------------------------------------------------
             # Legacy database (pre-Alembic, already fully migrated by the
-            # old custom system).  Stamp it at head so Alembic knows it's
-            # up-to-date without touching any data or schema.
+            # old custom system). Its schema matches the FIRST Alembic
+            # revision (the one with no down_revision), not necessarily
+            # head -- later revisions may have been added since (e.g. the
+            # auth/RBAC tables). Stamping straight at "head" here would
+            # mark those later migrations as applied without ever running
+            # their DDL, silently leaving required tables missing.
+            #
+            # Correct sequence: stamp at the root revision (no-op, matches
+            # what's already there), then upgrade forward from there so
+            # every subsequent migration actually runs.
             # ----------------------------------------------------------------
+            script = ScriptDirectory.from_config(cfg)
+            roots = script.get_bases()
+            root_revision = roots[0] if roots else "base"
+
             _logger.info(
                 "Existing database detected (no alembic_version table). "
-                "Stamping at Alembic head revision — no schema changes will be made."
+                "Stamping at Alembic root revision %s, then upgrading to head "
+                "to apply any migrations added since.",
+                root_revision,
             )
             cfg.attributes["connection"] = conn
-            command.stamp(cfg, "head")
-            _logger.info("Database stamped at head — Alembic tracking is now active.")
+            command.stamp(cfg, root_revision)
+            command.upgrade(cfg, "head")
+            _logger.info("Database stamped and upgraded to head.")
             return
 
         # -------------------------------------------------------------------
@@ -193,9 +209,18 @@ def get_current_revision(engine: Engine) -> Optional[str]:
 
 def get_pending_revisions(engine: Engine) -> list[str]:
     """
-    Return a list of revision IDs that have not yet been applied to *engine*.
+    Return a list of revision IDs that have not yet been applied to *engine*,
+    ordered oldest-first.
 
     An empty list means the database is at head.
+
+    Implementation note: this walks the DAG from head down to the
+    database's current heads (via ``ScriptDirectory.iterate_revisions``),
+    not "every revision whose id isn't literally the current head" --
+    with more than one migration in history, a revision can be fully
+    applied and still not equal the (single, most-recent) current head
+    string, which an earlier, simpler implementation of this function
+    conflated with "pending."
     """
     from alembic.runtime.migration import MigrationContext
     from alembic.script import ScriptDirectory
@@ -205,11 +230,8 @@ def get_pending_revisions(engine: Engine) -> list[str]:
 
     with engine.connect() as conn:
         ctx = MigrationContext.configure(conn)
-        current = set(ctx.get_current_heads())
+        current_heads = list(ctx.get_current_heads())
 
-    pending = []
-    for rev in script.walk_revisions():
-        if rev.revision not in current:
-            pending.append(rev.revision)
-
+    lower = current_heads if current_heads else "base"
+    pending = [rev.revision for rev in script.iterate_revisions("head", lower)]
     return list(reversed(pending))

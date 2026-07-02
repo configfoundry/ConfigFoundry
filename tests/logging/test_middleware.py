@@ -23,15 +23,20 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from fastapi.testclient import TestClient
 
 from app import create_app
+from tests.auth_helpers import auth_headers
 
 
 def _make_client(db_path: str) -> TestClient:
-    """Create a TestClient with no static directory (avoids 405 edge-case)."""
+    """Create a TestClient with no static directory (avoids 405 edge-case).
+    Pre-authenticated as the bootstrap Super Admin since /api/v1/devices
+    now requires the inventory:read permission."""
     app = create_app(
         db_path=db_path,
         static_dir=os.path.join(tempfile.mkdtemp(), "_no_static_"),
     )
-    return TestClient(app, raise_server_exceptions=False)
+    client = TestClient(app, raise_server_exceptions=False)
+    client.headers.update(auth_headers(app.state.container))
+    return client
 
 
 class TestCorrelationIDMiddleware(unittest.TestCase):

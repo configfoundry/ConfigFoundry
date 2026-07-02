@@ -135,7 +135,7 @@ class ProviderMetadata:
 | Field            | Type            | Default                    | Description                                      |
 |------------------|-----------------|----------------------------|--------------------------------------------------|
 | `provider`       | `str`           | `"sqlite"`                 | Provider name (see registry below)               |
-| `sqlite_path`    | `str`           | `"db/configforge.db"`      | Path to SQLite file, or `":memory:"`             |
+| `sqlite_path`    | `str`           | `"db/configfoundry.db"`      | Path to SQLite file, or `":memory:"`             |
 | `connection_url` | `str \| None`   | `None`                     | Full SQLAlchemy URL (non-SQLite backends)         |
 | `pool_size`      | `int`           | `5`                        | Connection pool size                             |
 | `max_overflow`   | `int`           | `10`                       | Max connections above pool_size                  |
@@ -156,7 +156,7 @@ class AppConfig:
 
 ```python
 # SQLite shortcut
-config = AppConfig.for_sqlite("/path/to/configforge.db")
+config = AppConfig.for_sqlite("/path/to/configfoundry.db")
 config = AppConfig.for_sqlite(":memory:")      # in-memory, useful for tests
 
 # From a dict
@@ -171,16 +171,16 @@ config = AppConfig.from_yaml("/etc/configfoundry/config.yaml")
 
 ### Environment variables
 
-All variables use the `CONFIGFORGE_DB_` prefix:
+All variables use the `CONFIGFOUNDRY_DB_` prefix:
 
 | Variable                       | DatabaseConfig field  |
 |--------------------------------|-----------------------|
-| `CONFIGFORGE_DB_PROVIDER`      | `provider`            |
-| `CONFIGFORGE_DB_SQLITE_PATH`   | `sqlite_path`         |
-| `CONFIGFORGE_DB_CONNECTION_URL`| `connection_url`      |
-| `CONFIGFORGE_DB_POOL_SIZE`     | `pool_size`           |
-| `CONFIGFORGE_DB_MAX_OVERFLOW`  | `max_overflow`        |
-| `CONFIGFORGE_DB_ECHO`          | `echo`                |
+| `CONFIGFOUNDRY_DB_PROVIDER`      | `provider`            |
+| `CONFIGFOUNDRY_DB_SQLITE_PATH`   | `sqlite_path`         |
+| `CONFIGFOUNDRY_DB_CONNECTION_URL`| `connection_url`      |
+| `CONFIGFOUNDRY_DB_POOL_SIZE`     | `pool_size`           |
+| `CONFIGFOUNDRY_DB_MAX_OVERFLOW`  | `max_overflow`        |
+| `CONFIGFOUNDRY_DB_ECHO`          | `echo`                |
 
 ### YAML config file
 
@@ -188,7 +188,7 @@ All variables use the `CONFIGFORGE_DB_` prefix:
 # /etc/configfoundry/config.yaml
 database:
   provider: postgresql
-  connection_url: "postgresql+psycopg2://user:pass@db-host:5432/configforge"
+  connection_url: "postgresql+psycopg2://user:pass@db-host:5432/configfoundry"
   pool_size: 10
   max_overflow: 20
   echo: false

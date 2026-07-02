@@ -1,6 +1,6 @@
 # Examples
 
-This directory contains reference material that makes ConfigForge easier to
+This directory contains reference material that makes ConfigFoundry easier to
 understand and verify. All files here are safe to delete — they are learning
 resources, not application code.
 
@@ -12,7 +12,7 @@ resources, not application code.
 
 SQLite database files (`.db`) pre-populated with realistic device, bandwidth,
 subnet, and tag data. A sample database lets a new contributor or evaluator
-run ConfigForge immediately without entering data by hand.
+run ConfigFoundry immediately without entering data by hand.
 
 Run a sample database directly:
 

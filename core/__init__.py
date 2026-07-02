@@ -1,1 +1,1 @@
-"""ConfigForge core: HTTP handler, business logic, storage, migrations, and encryption."""
+"""ConfigFoundry core: HTTP handler, business logic, storage, migrations, and encryption."""

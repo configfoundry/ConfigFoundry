@@ -156,7 +156,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Icon name="logo" />
           </span>
           <span className="sidebar-brand-name">
-            Config<span className="accent">Forge</span>
+            Config<span className="accent">Foundry</span>
           </span>
         </div>
 
@@ -189,7 +189,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="sidebar-footer">
           <span>v0.5</span>
           <a
-            href="https://github.com/shivamsancc/ConfigForge"
+            href="https://github.com/shivamsancc/ConfigFoundry"
             target="_blank"
             rel="noopener noreferrer"
           >

@@ -2,7 +2,7 @@
 Logging configuration dataclass for ConfigFoundry.
 
 Loaded from the ``logging:`` section of the YAML config file,
-``CONFIGFORGE_LOG_*`` environment variables, or left at defaults.
+``CONFIGFOUNDRY_LOG_*`` environment variables, or left at defaults.
 
 YAML example
 ------------
@@ -19,13 +19,13 @@ YAML example
 
 Environment variables
 ---------------------
-``CONFIGFORGE_LOG_LEVEL``        — DEBUG | INFO | WARNING | ERROR | CRITICAL
-``CONFIGFORGE_LOG_FILE``         — path to log file (omit to log console only)
-``CONFIGFORGE_LOG_CONSOLE``      — true | false
-``CONFIGFORGE_LOG_JSON``         — true | false  (structured JSON output)
-``CONFIGFORGE_LOG_ROTATION``     — daily | size | none
-``CONFIGFORGE_LOG_BACKUP_COUNT`` — integer
-``CONFIGFORGE_LOG_MAX_BYTES``    — integer (bytes, used when rotation=size)
+``CONFIGFOUNDRY_LOG_LEVEL``        — DEBUG | INFO | WARNING | ERROR | CRITICAL
+``CONFIGFOUNDRY_LOG_FILE``         — path to log file (omit to log console only)
+``CONFIGFOUNDRY_LOG_CONSOLE``      — true | false
+``CONFIGFOUNDRY_LOG_JSON``         — true | false  (structured JSON output)
+``CONFIGFOUNDRY_LOG_ROTATION``     — daily | size | none
+``CONFIGFOUNDRY_LOG_BACKUP_COUNT`` — integer
+``CONFIGFOUNDRY_LOG_MAX_BYTES``    — integer (bytes, used when rotation=size)
 """
 from __future__ import annotations
 
@@ -86,24 +86,24 @@ class LoggingConfig:
     @classmethod
     def from_env(cls) -> "LoggingConfig":
         """
-        Build a ``LoggingConfig`` from ``CONFIGFORGE_LOG_*`` environment
+        Build a ``LoggingConfig`` from ``CONFIGFOUNDRY_LOG_*`` environment
         variables.  Missing variables fall back to dataclass defaults.
         """
         kwargs: dict = {}
 
-        if v := os.environ.get("CONFIGFORGE_LOG_LEVEL"):
+        if v := os.environ.get("CONFIGFOUNDRY_LOG_LEVEL"):
             kwargs["level"] = v.upper()
-        if v := os.environ.get("CONFIGFORGE_LOG_FILE"):
+        if v := os.environ.get("CONFIGFOUNDRY_LOG_FILE"):
             kwargs["file"] = v
-        if v := os.environ.get("CONFIGFORGE_LOG_CONSOLE"):
+        if v := os.environ.get("CONFIGFOUNDRY_LOG_CONSOLE"):
             kwargs["console"] = v.strip().lower() in ("true", "1", "yes")
-        if v := os.environ.get("CONFIGFORGE_LOG_JSON"):
+        if v := os.environ.get("CONFIGFOUNDRY_LOG_JSON"):
             kwargs["json_format"] = v.strip().lower() in ("true", "1", "yes")
-        if v := os.environ.get("CONFIGFORGE_LOG_ROTATION"):
+        if v := os.environ.get("CONFIGFOUNDRY_LOG_ROTATION"):
             kwargs["rotation"] = v.lower()
-        if v := os.environ.get("CONFIGFORGE_LOG_BACKUP_COUNT"):
+        if v := os.environ.get("CONFIGFOUNDRY_LOG_BACKUP_COUNT"):
             kwargs["backup_count"] = int(v)
-        if v := os.environ.get("CONFIGFORGE_LOG_MAX_BYTES"):
+        if v := os.environ.get("CONFIGFOUNDRY_LOG_MAX_BYTES"):
             kwargs["max_bytes"] = int(v)
 
         return cls(**kwargs)

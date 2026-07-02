@@ -7,12 +7,15 @@ GET /api/v1/meta  → {deviceCount, bandwidthCount, subnetCount, lastSavedAt, la
 """
 from fastapi import APIRouter, Depends
 
-from api.dependencies import get_container
+from api.dependencies import Principal, get_container, require_permission
 from core.container import ServiceContainer
 
 router = APIRouter()
 
 
 @router.get("/meta")
-def get_meta(c: ServiceContainer = Depends(get_container)):
+def get_meta(
+    principal: Principal = Depends(require_permission("meta:read")),
+    c: ServiceContainer = Depends(get_container),
+):
     return c.meta_service.get_meta()

@@ -1,4 +1,4 @@
-ConfigForge Architecture Principles
+ConfigFoundry Architecture Principles
 
 1. Core owns the inventory model.
 2. Integrations are optional.

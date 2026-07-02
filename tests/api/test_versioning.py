@@ -36,6 +36,7 @@ from fastapi.testclient import TestClient
 
 from app import create_app
 from api.v1.router import VERSION, PREFIX, router as v1_router
+from tests.auth_helpers import auth_headers
 
 
 # ---------------------------------------------------------------------------
@@ -50,11 +51,18 @@ def _make_client() -> TestClient:
     is NOT mounted.  This keeps tests focused on the API routing layer and
     avoids the StaticFiles catch-all handler returning 405 for POST requests
     to unregistered paths (which would mask the expected 404 response).
+
+    All business routes now require authentication, so the client is
+    pre-authenticated as the bootstrap Super Admin -- these tests exercise
+    routing/versioning behavior, not authorization, which has its own
+    coverage in tests/api/test_auth_endpoints.py.
     """
     tmpdir = tempfile.mkdtemp()
     db_path = os.path.join(tmpdir, "versioning_test.db")
     app = create_app(db_path=db_path, static_dir=os.path.join(tmpdir, "_no_static_"))
-    return TestClient(app, raise_server_exceptions=False)
+    client = TestClient(app, raise_server_exceptions=False)
+    client.headers.update(auth_headers(app.state.container))
+    return client
 
 
 # ---------------------------------------------------------------------------
@@ -126,11 +134,12 @@ class TestOpenAPIMetadata(unittest.TestCase):
         tag_names = {t["name"] for t in self.spec.get("tags", [])}
         self.assertIn("devices", tag_names)
 
-    def test_openapi_has_ten_tags(self):
+    def test_openapi_has_fifteen_tags(self):
         """One tag per resource group: devices, bandwidth, subnets, tags,
-        lists, generate, audit, history, meta, export."""
+        lists, generate, audit, history, meta, export, plus the auth/RBAC/
+        policy layer: auth, users, roles, api-keys, policies."""
         tags = self.spec.get("tags", [])
-        self.assertEqual(len(tags), 10)
+        self.assertEqual(len(tags), 15)
 
 
 # ---------------------------------------------------------------------------
@@ -356,6 +365,7 @@ class TestFutureVersionCoexistence(unittest.TestCase):
 
         cls.app.include_router(v2_stub, prefix="/api")
         cls.client = TestClient(cls.app, raise_server_exceptions=False)
+        cls.client.headers.update(auth_headers(cls.app.state.container))
 
     def test_v1_devices_still_works_after_v2_mounted(self):
         r = self.client.get("/api/v1/devices")

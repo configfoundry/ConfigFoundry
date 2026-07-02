@@ -27,7 +27,9 @@ Refer to ``docs/api-versioning.md`` for the full guide.
 from fastapi import APIRouter
 
 from api.v1 import (
+    api_keys,
     audit,
+    auth,
     bandwidth,
     devices,
     export,
@@ -35,8 +37,11 @@ from api.v1 import (
     history,
     lists,
     meta,
+    policies,
+    roles,
     subnets,
     tags,
+    users,
 )
 
 # All v1 routes share the /v1 prefix.  Individual sub-routers define paths
@@ -54,6 +59,13 @@ router.include_router(audit.router,     tags=["audit"])
 router.include_router(history.router,   tags=["history"])
 router.include_router(meta.router,      tags=["meta"])
 router.include_router(export.router,    tags=["export"])
+
+# --- Auth / RBAC / policy ---
+router.include_router(auth.router,      tags=["auth"])
+router.include_router(users.router,     tags=["users"])
+router.include_router(roles.router,     tags=["roles"])
+router.include_router(api_keys.router,  tags=["api-keys"])
+router.include_router(policies.router,  tags=["policies"])
 
 # Canonical version string exposed to the app layer.
 VERSION = "v1"

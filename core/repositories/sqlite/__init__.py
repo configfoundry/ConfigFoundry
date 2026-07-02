@@ -1,5 +1,5 @@
 """
-SQLite implementations of the ConfigForge repository interfaces.
+SQLite implementations of the ConfigFoundry repository interfaces.
 
 Each concrete class in this package accepts a ``sqlite3.Connection`` and a
 ``threading.Lock`` at construction time, keeping the global-connection

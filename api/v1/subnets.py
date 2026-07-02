@@ -14,19 +14,26 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
-from api.dependencies import get_container
+from api.dependencies import Principal, get_container, require_permission
 from core.container import ServiceContainer
 
 router = APIRouter()
 
 
 @router.get("/subnets")
-def list_subnets(c: ServiceContainer = Depends(get_container)):
+def list_subnets(
+    principal: Principal = Depends(require_permission("inventory:read")),
+    c: ServiceContainer = Depends(get_container),
+):
     return {"subnets": c.subnet_service.list_subnets()}
 
 
 @router.post("/subnets/validate-import")
-def validate_import_subnets(body: dict[str, Any], c: ServiceContainer = Depends(get_container)):
+def validate_import_subnets(
+    body: dict[str, Any],
+    principal: Principal = Depends(require_permission("inventory:read")),
+    c: ServiceContainer = Depends(get_container),
+):
     rows = body.get("subnets")
     if not isinstance(rows, list):
         return JSONResponse({"error": "'subnets' must be a list"}, status_code=400)
@@ -35,7 +42,11 @@ def validate_import_subnets(body: dict[str, Any], c: ServiceContainer = Depends(
 
 
 @router.post("/subnets/import")
-def import_subnets(body: dict[str, Any], c: ServiceContainer = Depends(get_container)):
+def import_subnets(
+    body: dict[str, Any],
+    principal: Principal = Depends(require_permission("inventory:write")),
+    c: ServiceContainer = Depends(get_container),
+):
     rows = body.get("subnets")
     if not isinstance(rows, list):
         return JSONResponse({"error": "'subnets' must be a list"}, status_code=400)
@@ -45,7 +56,11 @@ def import_subnets(body: dict[str, Any], c: ServiceContainer = Depends(get_conta
 
 
 @router.post("/subnets")
-def upsert_subnet(body: dict[str, Any], c: ServiceContainer = Depends(get_container)):
+def upsert_subnet(
+    body: dict[str, Any],
+    principal: Principal = Depends(require_permission("inventory:write")),
+    c: ServiceContainer = Depends(get_container),
+):
     subnet = body.get("subnet")
     if not isinstance(subnet, dict):
         return JSONResponse({"error": "'subnet' must be an object"}, status_code=400)
@@ -58,7 +73,12 @@ def upsert_subnet(body: dict[str, Any], c: ServiceContainer = Depends(get_contai
 
 
 @router.delete("/subnets/{row_id}")
-def delete_subnet(row_id: str, request: Request, c: ServiceContainer = Depends(get_container)):
+def delete_subnet(
+    row_id: str,
+    request: Request,
+    principal: Principal = Depends(require_permission("inventory:write")),
+    c: ServiceContainer = Depends(get_container),
+):
     actor = request.query_params.get("_actor")
     c.subnet_service.delete(row_id, actor)
     return {"deleted": row_id}

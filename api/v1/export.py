@@ -10,7 +10,7 @@ GET /api/v1/export/subnets.xlsx    → binary xlsx
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
-from api.dependencies import get_container
+from api.dependencies import Principal, get_container, require_permission
 from core.container import ServiceContainer
 
 _XLSX_CTYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -19,7 +19,10 @@ router = APIRouter()
 
 
 @router.get("/export/devices.xlsx")
-def export_devices(c: ServiceContainer = Depends(get_container)):
+def export_devices(
+    principal: Principal = Depends(require_permission("export:read")),
+    c: ServiceContainer = Depends(get_container),
+):
     data = c.export_service.build_devices_xlsx()
     return Response(
         content=data,
@@ -29,7 +32,10 @@ def export_devices(c: ServiceContainer = Depends(get_container)):
 
 
 @router.get("/export/bandwidth.xlsx")
-def export_bandwidth(c: ServiceContainer = Depends(get_container)):
+def export_bandwidth(
+    principal: Principal = Depends(require_permission("export:read")),
+    c: ServiceContainer = Depends(get_container),
+):
     data = c.export_service.build_bandwidth_xlsx()
     return Response(
         content=data,
@@ -39,7 +45,10 @@ def export_bandwidth(c: ServiceContainer = Depends(get_container)):
 
 
 @router.get("/export/subnets.xlsx")
-def export_subnets(c: ServiceContainer = Depends(get_container)):
+def export_subnets(
+    principal: Principal = Depends(require_permission("export:read")),
+    c: ServiceContainer = Depends(get_container),
+):
     data = c.export_service.build_subnets_xlsx()
     return Response(
         content=data,

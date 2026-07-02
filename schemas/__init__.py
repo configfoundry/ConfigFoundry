@@ -1,1 +1,1 @@
-"""Pydantic v2 request/response schemas for ConfigForge's REST API."""
+"""Pydantic v2 request/response schemas for ConfigFoundry's REST API."""

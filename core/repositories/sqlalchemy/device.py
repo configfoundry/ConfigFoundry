@@ -18,6 +18,12 @@ from core.storage.provider import StorageProvider
 # ---------------------------------------------------------------------------
 
 _CRED_FIELDS: tuple[str, ...] = ("authKey", "privKey")
+# NOTE: this literal is intentionally frozen and must NOT be updated when the
+# product is renamed — it is a raw 32-byte AES-256 key, not a display name.
+# Changing a single byte makes every already-encrypted authKey/privKey value
+# in existing databases permanently undecryptable. It was accidentally
+# mangled by a project-wide "ConfigForge" -> "ConfigFoundry" text rename
+# (which grew it from 32 to 34 bytes) and has been restored here.
 _ENC_KEY: bytes = b"ConfigForge-static-at-rest-key!!"
 assert len(_ENC_KEY) == 32
 

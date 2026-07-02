@@ -1,6 +1,6 @@
 # Integrations
 
-This directory is reserved for optional integrations that connect ConfigForge
+This directory is reserved for optional integrations that connect ConfigFoundry
 to external systems. No integrations exist yet. This README is the architectural
 contract that every future integration must follow.
 
@@ -10,7 +10,7 @@ contract that every future integration must follow.
 
 ### 1. Integrations are optional
 
-ConfigForge starts, runs, and functions correctly with zero integrations present.
+ConfigFoundry starts, runs, and functions correctly with zero integrations present.
 Removing every file in this directory must not affect the server, the API,
 the database, or the frontend in any way.
 
@@ -48,7 +48,7 @@ except ImportError:
     )
 ```
 
-### 6. Integrations extend ConfigForge; they never redefine the inventory model
+### 6. Integrations extend ConfigFoundry; they never redefine the inventory model
 
 The data model — what a device is, what a bandwidth cap is, what a subnet is,
 what a tag is — is owned by `core/`. An integration may read it, filter it,

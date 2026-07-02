@@ -1,1 +1,1 @@
-"""ConfigForge formats: serialization and export (YAML, XLSX)."""
+"""ConfigFoundry formats: serialization and export (YAML, XLSX)."""

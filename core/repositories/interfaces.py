@@ -1,5 +1,5 @@
 """
-Abstract repository interfaces for all ConfigForge persistence entities.
+Abstract repository interfaces for all ConfigFoundry persistence entities.
 
 Each interface defines the full persistence contract for one domain aggregate,
 independent of the underlying storage technology.  Concrete implementations
@@ -174,8 +174,45 @@ class IAuditRepository(ABC):
     """Append-only audit log."""
 
     @abstractmethod
-    def log(self, actor: Optional[str], action: str, details=None) -> str:
-        """Append an audit entry.  Returns the new entry's UUID."""
+    def log(
+        self,
+        actor: Optional[str],
+        action: str,
+        details=None,
+        *,
+        org_id: Optional[str] = None,
+        actor_type: Optional[str] = None,
+        source_ip: Optional[str] = None,
+        user_agent: Optional[str] = None,
+        resource_type: Optional[str] = None,
+        resource_id: Optional[str] = None,
+        result: Optional[str] = None,
+        correlation_id: Optional[str] = None,
+    ) -> str:
+        """
+        Append an audit entry.  Returns the new entry's UUID.
+
+        The keyword-only fields were added for the auth/RBAC/policy layer
+        (security events: login, logout, role change, policy violation,
+        etc.) and all default to None, so every pre-existing call site
+        (business-object create/update/delete) is unaffected.
+        """
+        ...
+
+    @abstractmethod
+    def search(
+        self,
+        *,
+        actor: Optional[str] = None,
+        action: Optional[str] = None,
+        result: Optional[str] = None,
+        org_id: Optional[str] = None,
+        since_ts: Optional[float] = None,
+        until_ts: Optional[float] = None,
+        limit: int = 100,
+    ) -> list[dict]:
+        """Filtered search over the audit log, newest first. Used by the
+        security audit UI/API (GET /api/v1/audit/security)."""
         ...
 
     @abstractmethod
@@ -241,3 +278,233 @@ class IMetaRepository(ABC):
     def set_kv(self, key: str, value: str) -> None:
         """Upsert a single key-value pair."""
         ...
+
+
+# ---------------------------------------------------------------------------
+# Organizations
+# ---------------------------------------------------------------------------
+
+class IOrganizationRepository(ABC):
+    @abstractmethod
+    def create(self, org: dict) -> dict: ...
+
+    @abstractmethod
+    def get(self, org_id: str) -> Optional[dict]: ...
+
+    @abstractmethod
+    def get_by_slug(self, slug: str) -> Optional[dict]: ...
+
+    @abstractmethod
+    def list_all(self) -> list[dict]: ...
+
+    @abstractmethod
+    def update(self, org_id: str, changes: dict) -> Optional[dict]: ...
+
+
+# ---------------------------------------------------------------------------
+# Users
+# ---------------------------------------------------------------------------
+
+class IUserRepository(ABC):
+    @abstractmethod
+    def create(self, user: dict) -> dict: ...
+
+    @abstractmethod
+    def get(self, user_id: str) -> Optional[dict]: ...
+
+    @abstractmethod
+    def get_by_email(self, email: str) -> Optional[dict]: ...
+
+    @abstractmethod
+    def list_by_org(self, org_id: str) -> list[dict]: ...
+
+    @abstractmethod
+    def update(self, user_id: str, changes: dict) -> Optional[dict]: ...
+
+    @abstractmethod
+    def delete(self, user_id: str) -> None: ...
+
+    @abstractmethod
+    def increment_failed_login(self, user_id: str) -> int:
+        """Increment failed_login_count and return the new value."""
+        ...
+
+    @abstractmethod
+    def reset_failed_login(self, user_id: str) -> None: ...
+
+    @abstractmethod
+    def set_lock(self, user_id: str, locked_until: Optional[float]) -> None: ...
+
+    @abstractmethod
+    def bump_perm_version(self, user_id: str) -> int:
+        """Invalidate all currently-issued access tokens for this user by
+        incrementing perm_version. Returns the new value."""
+        ...
+
+    @abstractmethod
+    def touch_login(self, user_id: str) -> None:
+        """Update last_login_at to now."""
+        ...
+
+
+# ---------------------------------------------------------------------------
+# Roles & permissions
+# ---------------------------------------------------------------------------
+
+class IRoleRepository(ABC):
+    @abstractmethod
+    def create(self, role: dict) -> dict: ...
+
+    @abstractmethod
+    def get(self, role_id: str) -> Optional[dict]: ...
+
+    @abstractmethod
+    def list_for_org(self, org_id: str) -> list[dict]:
+        """System roles (org_id IS NULL) plus this org's custom roles."""
+        ...
+
+    @abstractmethod
+    def update(self, role_id: str, changes: dict) -> Optional[dict]: ...
+
+    @abstractmethod
+    def delete(self, role_id: str) -> None: ...
+
+    @abstractmethod
+    def set_permissions(self, role_id: str, permission_codes: list[str]) -> None: ...
+
+    @abstractmethod
+    def get_permission_codes(self, role_id: str) -> list[str]: ...
+
+    @abstractmethod
+    def assign_to_user(self, user_id: str, role_id: str, org_id: str) -> None: ...
+
+    @abstractmethod
+    def unassign_from_user(self, user_id: str, role_id: str, org_id: str) -> None: ...
+
+    @abstractmethod
+    def list_for_user(self, user_id: str, org_id: str) -> list[dict]: ...
+
+    @abstractmethod
+    def get_effective_permissions(self, user_id: str, org_id: str) -> set[str]:
+        """Union of permission codes across every role the user holds in
+        this org. This is the single source of truth RBAC checks call."""
+        ...
+
+
+class IPermissionRepository(ABC):
+    @abstractmethod
+    def list_all(self) -> list[dict]: ...
+
+    @abstractmethod
+    def get_by_code(self, code: str) -> Optional[dict]: ...
+
+    @abstractmethod
+    def ensure_seeded(self, catalog: list[dict]) -> None:
+        """Idempotently insert any permission codes from *catalog* that
+        don't already exist."""
+        ...
+
+
+# ---------------------------------------------------------------------------
+# Refresh tokens
+# ---------------------------------------------------------------------------
+
+class IRefreshTokenRepository(ABC):
+    @abstractmethod
+    def create(self, token: dict) -> dict: ...
+
+    @abstractmethod
+    def get_by_hash(self, token_hash: str) -> Optional[dict]: ...
+
+    @abstractmethod
+    def revoke(self, token_id: str) -> None: ...
+
+    @abstractmethod
+    def revoke_family(self, family_id: str) -> None:
+        """Revoke every token descended from one login -- used when reuse
+        of an already-rotated token is detected (possible theft)."""
+        ...
+
+    @abstractmethod
+    def revoke_all_for_user(self, user_id: str) -> None: ...
+
+    @abstractmethod
+    def list_active_for_user(self, user_id: str) -> list[dict]: ...
+
+    @abstractmethod
+    def mark_replaced(self, token_id: str, replaced_by: str) -> None:
+        """Revoke *token_id* and record which new token replaced it
+        (rotation audit trail)."""
+        ...
+
+
+# ---------------------------------------------------------------------------
+# API keys
+# ---------------------------------------------------------------------------
+
+class IAPIKeyRepository(ABC):
+    @abstractmethod
+    def create(self, api_key: dict) -> dict: ...
+
+    @abstractmethod
+    def get(self, key_id: str) -> Optional[dict]: ...
+
+    @abstractmethod
+    def get_by_hash(self, key_hash: str) -> Optional[dict]: ...
+
+    @abstractmethod
+    def list_for_org(self, org_id: str) -> list[dict]: ...
+
+    @abstractmethod
+    def revoke(self, key_id: str) -> None: ...
+
+    @abstractmethod
+    def touch_last_used(self, key_id: str, ts: float) -> None: ...
+
+
+# ---------------------------------------------------------------------------
+# Access Policy Engine -- network ACLs
+# ---------------------------------------------------------------------------
+
+class INetworkACLRepository(ABC):
+    @abstractmethod
+    def create(self, rule: dict) -> dict: ...
+
+    @abstractmethod
+    def list_effective(self, org_id: Optional[str]) -> list[dict]:
+        """Enabled global rules (org_id NULL) plus this org's enabled
+        rules, ordered by priority ascending (lower number evaluated
+        first). Used by the policy engine at request time."""
+        ...
+
+    @abstractmethod
+    def list_all_for_org(self, org_id: Optional[str]) -> list[dict]:
+        """Same scoping as list_effective but includes disabled rules --
+        used by the admin UI/API so disabled rules are still visible."""
+        ...
+
+    @abstractmethod
+    def delete(self, rule_id: str) -> None: ...
+
+    @abstractmethod
+    def set_enabled(self, rule_id: str, enabled: bool) -> None: ...
+
+
+# ---------------------------------------------------------------------------
+# MFA backup codes
+# ---------------------------------------------------------------------------
+
+class IMFABackupCodeRepository(ABC):
+    @abstractmethod
+    def replace_all(self, user_id: str, code_hashes: list[str]) -> None:
+        """Discard any existing codes and store a freshly generated set."""
+        ...
+
+    @abstractmethod
+    def consume(self, user_id: str, code: str) -> bool:
+        """Verify *code* against the user's unused backup codes; if valid,
+        mark it used (one-time) and return True."""
+        ...
+
+    @abstractmethod
+    def count_remaining(self, user_id: str) -> int: ...

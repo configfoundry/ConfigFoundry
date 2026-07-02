@@ -1,5 +1,5 @@
 """
-SQLAlchemy 2.x database initialisation for ConfigForge.
+SQLAlchemy 2.x database initialisation for ConfigFoundry.
 
 ``init_db(db_path)`` is the single entry-point.  It:
   1. Runs pending schema migrations via the existing ``core.migrations``
@@ -12,7 +12,7 @@ SQLAlchemy 2.x database initialisation for ConfigForge.
 Usage::
 
     from core.db import init_db
-    engine = init_db("/path/to/configforge.db")
+    engine = init_db("/path/to/configfoundry.db")
 """
 import json
 import sqlite3

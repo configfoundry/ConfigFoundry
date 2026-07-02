@@ -9,13 +9,17 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 
-from api.dependencies import get_container
+from api.dependencies import Principal, get_container, require_permission
 from core.container import ServiceContainer
 
 router = APIRouter()
 
 
 @router.post("/generate")
-def generate(body: dict[str, Any] = {}, c: ServiceContainer = Depends(get_container)):
+def generate(
+    body: dict[str, Any] = {},
+    principal: Principal = Depends(require_permission("deployment:execute")),
+    c: ServiceContainer = Depends(get_container),
+):
     actor = body.get("_actor") if isinstance(body, dict) else None
     return c.generate_service.generate(actor)

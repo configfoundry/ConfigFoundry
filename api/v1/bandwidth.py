@@ -14,19 +14,26 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
-from api.dependencies import get_container
+from api.dependencies import Principal, get_container, require_permission
 from core.container import ServiceContainer
 
 router = APIRouter()
 
 
 @router.get("/bandwidth")
-def list_bandwidth(c: ServiceContainer = Depends(get_container)):
+def list_bandwidth(
+    principal: Principal = Depends(require_permission("inventory:read")),
+    c: ServiceContainer = Depends(get_container),
+):
     return {"rows": c.bandwidth_service.list_bandwidth()}
 
 
 @router.post("/bandwidth/validate-import")
-def validate_import_bandwidth(body: dict[str, Any], c: ServiceContainer = Depends(get_container)):
+def validate_import_bandwidth(
+    body: dict[str, Any],
+    principal: Principal = Depends(require_permission("inventory:read")),
+    c: ServiceContainer = Depends(get_container),
+):
     rows = body.get("rows")
     if not isinstance(rows, list):
         return JSONResponse({"error": "'rows' must be a list"}, status_code=400)
@@ -35,7 +42,11 @@ def validate_import_bandwidth(body: dict[str, Any], c: ServiceContainer = Depend
 
 
 @router.post("/bandwidth/import")
-def import_bandwidth(body: dict[str, Any], c: ServiceContainer = Depends(get_container)):
+def import_bandwidth(
+    body: dict[str, Any],
+    principal: Principal = Depends(require_permission("inventory:write")),
+    c: ServiceContainer = Depends(get_container),
+):
     rows = body.get("rows")
     if not isinstance(rows, list):
         return JSONResponse({"error": "'rows' must be a list"}, status_code=400)
@@ -45,7 +56,11 @@ def import_bandwidth(body: dict[str, Any], c: ServiceContainer = Depends(get_con
 
 
 @router.post("/bandwidth")
-def upsert_bandwidth(body: dict[str, Any], c: ServiceContainer = Depends(get_container)):
+def upsert_bandwidth(
+    body: dict[str, Any],
+    principal: Principal = Depends(require_permission("inventory:write")),
+    c: ServiceContainer = Depends(get_container),
+):
     row = body.get("row")
     if not isinstance(row, dict):
         return JSONResponse({"error": "'row' must be an object"}, status_code=400)
@@ -58,7 +73,12 @@ def upsert_bandwidth(body: dict[str, Any], c: ServiceContainer = Depends(get_con
 
 
 @router.delete("/bandwidth/{row_id}")
-def delete_bandwidth(row_id: str, request: Request, c: ServiceContainer = Depends(get_container)):
+def delete_bandwidth(
+    row_id: str,
+    request: Request,
+    principal: Principal = Depends(require_permission("inventory:write")),
+    c: ServiceContainer = Depends(get_container),
+):
     actor = request.query_params.get("_actor")
     c.bandwidth_service.delete(row_id, actor)
     return {"deleted": row_id}

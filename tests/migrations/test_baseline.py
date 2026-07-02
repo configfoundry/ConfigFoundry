@@ -43,6 +43,12 @@ from core.migrations.runner import (
 # The revision ID defined in alembic/versions/0001_baseline_schema.py
 BASELINE_REVISION = "c1f4e7a8b2d0"
 
+# The revision ID defined in alembic/versions/0002_auth_and_security.py --
+# current head of the migration chain. "After a full upgrade" assertions
+# should target this, not BASELINE_REVISION (which is still correct for
+# "is baseline in the pending set on an untouched DB" checks).
+HEAD_REVISION = "a3f9c2e1d7b4"
+
 # All tables that should exist after a full migration.
 EXPECTED_TABLES = {
     "devices",
@@ -102,10 +108,10 @@ class TestFreshDatabaseUpgrade(unittest.TestCase):
         run_migrations(self._engine)
         self.assertIn("alembic_version", _table_names(self._engine))
 
-    def test_current_revision_is_baseline_after_upgrade(self):
+    def test_current_revision_is_head_after_upgrade(self):
         run_migrations(self._engine)
         rev = get_current_revision(self._engine)
-        self.assertEqual(rev, BASELINE_REVISION)
+        self.assertEqual(rev, HEAD_REVISION)
 
     def test_pending_revisions_empty_after_upgrade(self):
         run_migrations(self._engine)
@@ -253,7 +259,16 @@ class TestLegacyDatabaseCompatibility(unittest.TestCase):
     def test_legacy_db_is_at_head_after_stamp(self):
         run_migrations(self._engine)
         rev = get_current_revision(self._engine)
-        self.assertEqual(rev, BASELINE_REVISION)
+        self.assertEqual(rev, HEAD_REVISION)
+
+    def test_legacy_db_gets_new_tables_via_upgrade(self):
+        """The legacy stamp path must still create tables added by
+        migrations after the baseline (e.g. auth/RBAC) -- stamping at
+        head with no DDL would silently skip them."""
+        run_migrations(self._engine)
+        tables = _table_names(self._engine)
+        self.assertIn("users", tables)
+        self.assertIn("organizations", tables)
 
     def test_legacy_data_preserved_after_stamp(self):
         """No data should be modified by stamping."""
@@ -282,15 +297,22 @@ class TestLegacyDatabaseCompatibility(unittest.TestCase):
             ).fetchone()
         self.assertEqual(row[0], "4")
 
-    def test_legacy_no_additional_tables_created(self):
-        """Stamping must not create or drop any application tables."""
+    def test_legacy_baseline_tables_are_untouched(self):
+        """The legacy stamp step itself must not create, drop, or modify
+        any of the original (pre-Alembic) application tables -- it only
+        writes alembic_version. Tables added by LATER migrations (e.g.
+        auth/RBAC, applied by the upgrade-to-head step that follows the
+        stamp) are expected and covered separately by
+        test_legacy_db_gets_new_tables_via_upgrade."""
         tables_before = _table_names(self._engine)
         run_migrations(self._engine)
         tables_after = _table_names(self._engine)
-        # Only alembic_version should be added
-        added = tables_after - tables_before
-        self.assertEqual(added, {"alembic_version"})
+        # Every original table must still be present, untouched.
         self.assertEqual(tables_before - tables_after, set())
+        # New tables are allowed to appear (alembic_version, plus anything
+        # from migrations after the legacy DB's baseline) -- but nothing
+        # from the original set should have been dropped or renamed.
+        self.assertTrue(tables_before.issubset(tables_after))
 
     def test_run_migrations_on_legacy_db_is_idempotent(self):
         """Calling run_migrations twice on a legacy DB is safe."""
@@ -353,7 +375,7 @@ class TestInMemoryDatabase(unittest.TestCase):
         engine = _make_memory_engine()
         try:
             run_migrations(engine)
-            self.assertEqual(get_current_revision(engine), BASELINE_REVISION)
+            self.assertEqual(get_current_revision(engine), HEAD_REVISION)
         finally:
             engine.dispose()
 
@@ -515,7 +537,7 @@ class TestRunnerUtilities(unittest.TestCase):
     def test_get_current_revision_after_upgrade(self):
         run_migrations(self._engine)
         rev = get_current_revision(self._engine)
-        self.assertEqual(rev, BASELINE_REVISION)
+        self.assertEqual(rev, HEAD_REVISION)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ Usage
 Create from a database path (backward-compatible, SQLite)::
 
     from app import create_app
-    app = create_app(db_path="/path/to/configforge.db")
+    app = create_app(db_path="/path/to/configfoundry.db")
 
 Create from full application config::
 
@@ -54,6 +54,7 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -62,6 +63,12 @@ from core.container import ServiceContainer
 from core.logging import get_logger
 from core.logging.middleware import CorrelationIDMiddleware, RequestLoggingMiddleware
 from core.logging.startup import log_shutdown_info, log_startup_info
+from core.security.middleware import (
+    AccessPolicyMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+    TrustedProxyMiddleware,
+)
 from core.storage.config import AppConfig
 
 # ---------------------------------------------------------------------------
@@ -176,6 +183,11 @@ def create_app(
             {"name": "history",   "description": "YAML generation history"},
             {"name": "meta",      "description": "Inventory metadata and statistics"},
             {"name": "export",    "description": "Excel export"},
+            {"name": "auth",      "description": "Login, token refresh/logout, MFA, password management"},
+            {"name": "users",     "description": "User account administration"},
+            {"name": "roles",     "description": "Role & permission administration (RBAC)"},
+            {"name": "api-keys",  "description": "Service-account API key management"},
+            {"name": "policies",  "description": "Access Policy Engine -- IP allow/deny rules"},
         ],
     )
 
@@ -201,9 +213,26 @@ def create_app(
 
     # ------------------------------------------------------------------
     # Middleware  (LAST added = FIRST to run)
+    #
+    # Desired execution order (outer -> inner):
+    #   SecurityHeaders -> TrustedProxy -> AccessPolicy -> RateLimit
+    #   -> CORS -> CorrelationID -> RequestLogging -> route handlers
+    #
+    # so registration below is in the REVERSE of that order.
     # ------------------------------------------------------------------
-    app.add_middleware(RequestLoggingMiddleware)   # added first → runs second
-    app.add_middleware(CorrelationIDMiddleware)    # added last  → runs first
+    app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(CorrelationIDMiddleware)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_container.security_config.cors_allowed_origins or [],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(AccessPolicyMiddleware)
+    app.add_middleware(TrustedProxyMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)  # added last → runs first
 
     # ------------------------------------------------------------------
     # API v1 router  (all endpoints under /api/v1/)

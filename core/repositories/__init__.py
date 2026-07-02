@@ -1,5 +1,5 @@
 """
-Repository layer: abstract interfaces for all ConfigForge persistence entities.
+Repository layer: abstract interfaces for all ConfigFoundry persistence entities.
 
 Import the interfaces from here; import concrete SQLite implementations from
 core.repositories.sqlite when you need to wire up the actual implementations.

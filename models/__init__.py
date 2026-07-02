@@ -9,6 +9,18 @@ from models.inventory import (
     ListModel,
     MetaModel,
 )
+from models.auth import (
+    OrganizationModel,
+    UserModel,
+    RoleModel,
+    PermissionModel,
+    RolePermissionModel,
+    UserRoleModel,
+    RefreshTokenModel,
+    APIKeyModel,
+    NetworkACLModel,
+    MFABackupCodeModel,
+)
 
 __all__ = [
     "Base",
@@ -20,4 +32,14 @@ __all__ = [
     "YamlHistoryModel",
     "ListModel",
     "MetaModel",
+    "OrganizationModel",
+    "UserModel",
+    "RoleModel",
+    "PermissionModel",
+    "RolePermissionModel",
+    "UserRoleModel",
+    "RefreshTokenModel",
+    "APIKeyModel",
+    "NetworkACLModel",
+    "MFABackupCodeModel",
 ]

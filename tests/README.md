@@ -1,6 +1,6 @@
 # Tests
 
-This directory is reserved for ConfigForge's automated test suite.
+This directory is reserved for ConfigFoundry's automated test suite.
 No test code exists yet — this is a known gap explicitly called out in the
 project README. Contributions are welcome.
 
@@ -8,7 +8,7 @@ project README. Contributions are welcome.
 
 ## Philosophy
 
-ConfigForge's test philosophy mirrors its architecture:
+ConfigFoundry's test philosophy mirrors its architecture:
 
 - **Prefer unit tests over integration tests.** Most of the interesting logic
   (`core/logic.py`, `formats/yamldump.py`, `core/aesgcm.py`) is pure functions

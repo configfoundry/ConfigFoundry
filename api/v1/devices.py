@@ -14,19 +14,26 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
-from api.dependencies import get_container
+from api.dependencies import Principal, get_container, require_permission
 from core.container import ServiceContainer
 
 router = APIRouter()
 
 
 @router.get("/devices")
-def list_devices(c: ServiceContainer = Depends(get_container)):
+def list_devices(
+    principal: Principal = Depends(require_permission("inventory:read")),
+    c: ServiceContainer = Depends(get_container),
+):
     return {"devices": c.device_service.list_devices()}
 
 
 @router.post("/devices/validate-import")
-def validate_import_devices(body: dict[str, Any], c: ServiceContainer = Depends(get_container)):
+def validate_import_devices(
+    body: dict[str, Any],
+    principal: Principal = Depends(require_permission("inventory:read")),
+    c: ServiceContainer = Depends(get_container),
+):
     rows = body.get("devices")
     if not isinstance(rows, list):
         return JSONResponse({"error": "'devices' must be a list"}, status_code=400)
@@ -35,7 +42,11 @@ def validate_import_devices(body: dict[str, Any], c: ServiceContainer = Depends(
 
 
 @router.post("/devices/import")
-def import_devices(body: dict[str, Any], c: ServiceContainer = Depends(get_container)):
+def import_devices(
+    body: dict[str, Any],
+    principal: Principal = Depends(require_permission("inventory:write")),
+    c: ServiceContainer = Depends(get_container),
+):
     rows = body.get("devices")
     if not isinstance(rows, list):
         return JSONResponse({"error": "'devices' must be a list"}, status_code=400)
@@ -45,7 +56,11 @@ def import_devices(body: dict[str, Any], c: ServiceContainer = Depends(get_conta
 
 
 @router.post("/devices")
-def upsert_device(body: dict[str, Any], c: ServiceContainer = Depends(get_container)):
+def upsert_device(
+    body: dict[str, Any],
+    principal: Principal = Depends(require_permission("inventory:write")),
+    c: ServiceContainer = Depends(get_container),
+):
     device = body.get("device")
     if not isinstance(device, dict):
         return JSONResponse({"error": "'device' must be an object"}, status_code=400)
@@ -58,7 +73,12 @@ def upsert_device(body: dict[str, Any], c: ServiceContainer = Depends(get_contai
 
 
 @router.delete("/devices/{device_id}")
-def delete_device(device_id: str, request: Request, c: ServiceContainer = Depends(get_container)):
+def delete_device(
+    device_id: str,
+    request: Request,
+    principal: Principal = Depends(require_permission("inventory:write")),
+    c: ServiceContainer = Depends(get_container),
+):
     actor = request.query_params.get("_actor")
     c.device_service.delete(device_id, actor)
     return {"deleted": device_id}

@@ -18,17 +18,17 @@ Backward compatibility
 -----------------------
 Passing a plain ``db_path`` string still works::
 
-    container = ServiceContainer(db_path="/path/to/configforge.db")
+    container = ServiceContainer(db_path="/path/to/configfoundry.db")
 
 This is equivalent to::
 
-    config = AppConfig.for_sqlite("/path/to/configforge.db")
+    config = AppConfig.for_sqlite("/path/to/configfoundry.db")
     container = ServiceContainer(config=config)
 
 Usage (in app.py / tests)::
 
     container = ServiceContainer(config=AppConfig.from_yaml("config.yaml"))
-    container = ServiceContainer(db_path="db/configforge.db")   # compat
+    container = ServiceContainer(db_path="db/configfoundry.db")   # compat
 """
 from __future__ import annotations
 
@@ -49,6 +49,14 @@ from core.repositories.sqlalchemy.audit import SQLAlchemyAuditRepository
 from core.repositories.sqlalchemy.history import SQLAlchemyHistoryRepository
 from core.repositories.sqlalchemy.list import SQLAlchemyListRepository
 from core.repositories.sqlalchemy.meta import SQLAlchemyMetaRepository
+from core.repositories.sqlalchemy.organization import SQLAlchemyOrganizationRepository
+from core.repositories.sqlalchemy.user import SQLAlchemyUserRepository
+from core.repositories.sqlalchemy.role import SQLAlchemyRoleRepository
+from core.repositories.sqlalchemy.permission import SQLAlchemyPermissionRepository
+from core.repositories.sqlalchemy.refresh_token import SQLAlchemyRefreshTokenRepository
+from core.repositories.sqlalchemy.api_key import SQLAlchemyAPIKeyRepository
+from core.repositories.sqlalchemy.network_acl import SQLAlchemyNetworkACLRepository
+from core.repositories.sqlalchemy.mfa_backup_code import SQLAlchemyMFABackupCodeRepository
 
 # --- Services (unchanged) ---
 from core.services.device_service import DeviceService
@@ -62,6 +70,18 @@ from core.services.import_service import ImportService
 from core.services.audit_service import AuditService
 from core.services.history_service import HistoryService
 from core.services.meta_service import MetaService
+
+# --- Auth / RBAC / policy services ---
+from core.services.auth_service import AuthService
+from core.services.mfa_service import MFAService
+from core.services.rbac_service import RBACService
+from core.services.api_key_service import APIKeyService
+from core.services.policy_engine import PolicyEngine
+from core.services.policy_service import PolicyService
+from core.services.user_service import UserService
+from core.services.role_service import RoleService
+from core.services.organization_service import OrganizationService
+from core.security.permissions import PERMISSION_CATALOG
 
 
 class ServiceContainer:
@@ -93,6 +113,25 @@ class ServiceContainer:
         config: Optional[AppConfig] = None,
         provider: Optional[StorageProvider] = None,
     ) -> None:
+        # ------------------------------------------------------------------
+        # Resolve the security configuration (JWT secret, password policy,
+        # rate limits, etc.). Falls back to environment variables when no
+        # full AppConfig is supplied, same convention as the db_path
+        # shortcut above for database config.
+        # ------------------------------------------------------------------
+        from core.security.config import SecurityConfig
+        from core.security.rate_limit import RateLimiter
+
+        self.security_config: SecurityConfig = (
+            config.security if config is not None else SecurityConfig.from_env()
+        )
+
+        # One rate limiter PER CONTAINER, not a process-wide singleton --
+        # otherwise unrelated ServiceContainer instances in the same
+        # process (e.g. every test that builds its own app) would share
+        # and exhaust the same request buckets.
+        self.rate_limiter = RateLimiter()
+
         # ------------------------------------------------------------------
         # Resolve the storage provider
         # ------------------------------------------------------------------
@@ -136,6 +175,21 @@ class ServiceContainer:
         self.history_repo = SQLAlchemyHistoryRepository(self._provider)
         self.list_repo = SQLAlchemyListRepository(self._provider)
         self.meta_repo = SQLAlchemyMetaRepository(self._provider)
+
+        # --- Auth / RBAC / policy repositories ---
+        self.organization_repo = SQLAlchemyOrganizationRepository(self._provider)
+        self.user_repo = SQLAlchemyUserRepository(self._provider)
+        self.role_repo = SQLAlchemyRoleRepository(self._provider)
+        self.permission_repo = SQLAlchemyPermissionRepository(self._provider)
+        self.refresh_token_repo = SQLAlchemyRefreshTokenRepository(self._provider)
+        self.api_key_repo = SQLAlchemyAPIKeyRepository(self._provider)
+        self.network_acl_repo = SQLAlchemyNetworkACLRepository(self._provider)
+        self.mfa_backup_code_repo = SQLAlchemyMFABackupCodeRepository(self._provider)
+
+        # Self-healing permission catalog: if a future release adds a new
+        # permission code, it is inserted here on next startup rather than
+        # requiring a data migration for every new permission.
+        self.permission_repo.ensure_seeded(PERMISSION_CATALOG)
 
         # ------------------------------------------------------------------
         # Services  (repositories injected via constructors — unchanged)
@@ -187,6 +241,29 @@ class ServiceContainer:
             self.subnet_repo,
             self.meta_repo,
         )
+
+        # ------------------------------------------------------------------
+        # Auth / RBAC / policy services
+        # ------------------------------------------------------------------
+        self.rbac_service = RBACService(self.role_repo, self.user_repo)
+        self.auth_service = AuthService(
+            self.user_repo, self.refresh_token_repo, self.audit_repo, self.security_config,
+        )
+        self.mfa_service = MFAService(
+            self.user_repo, self.mfa_backup_code_repo, self.security_config
+        )
+        self.api_key_service = APIKeyService(self.api_key_repo, self.audit_repo)
+        self.policy_engine = PolicyEngine(self.network_acl_repo)
+        self.policy_service = PolicyService(self.network_acl_repo, self.audit_repo)
+        self.user_service = UserService(self.user_repo, self.role_repo, self.audit_repo)
+        self.role_service = RoleService(self.role_repo, self.permission_repo, self.audit_repo)
+        self.organization_service = OrganizationService(self.organization_repo, self.audit_repo)
+
+        # Convenience accessor: the single-tenant "default" org that seeds
+        # into every fresh database (see docs/authentication.md). Routes
+        # that haven't been made multi-tenant-aware yet scope to this.
+        default_org = self.organization_service.get_default_org()
+        self.default_org_id: Optional[str] = default_org["id"] if default_org else None
 
     # ------------------------------------------------------------------
     # Backward-compatibility properties

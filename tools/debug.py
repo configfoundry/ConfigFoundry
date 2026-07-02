@@ -3,7 +3,7 @@ import os
 import sqlite3
 import json
 
-_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'db', 'configforge.db')
+_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'db', 'configfoundry.db')
 
 conn = sqlite3.connect(_DB)
 rows = conn.execute('SELECT data FROM devices').fetchall()

@@ -1,1 +1,1 @@
-"""FastAPI route package for ConfigForge."""
+"""FastAPI route package for ConfigFoundry."""

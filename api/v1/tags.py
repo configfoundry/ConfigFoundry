@@ -13,7 +13,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
-from api.dependencies import get_container
+from api.dependencies import Principal, get_container, require_permission
 from core.container import ServiceContainer
 from core.services.tag_service import TagInUseError
 
@@ -21,12 +21,20 @@ router = APIRouter()
 
 
 @router.get("/tags")
-def list_tags(c: ServiceContainer = Depends(get_container)):
+def list_tags(
+    principal: Principal = Depends(require_permission("inventory:read")),
+    c: ServiceContainer = Depends(get_container),
+):
     return {"tagDefs": c.tag_service.list_tags()}
 
 
 @router.get("/tags/{tag_id}/usage")
-def tag_usage(tag_id: str, request: Request, c: ServiceContainer = Depends(get_container)):
+def tag_usage(
+    tag_id: str,
+    request: Request,
+    principal: Principal = Depends(require_permission("inventory:read")),
+    c: ServiceContainer = Depends(get_container),
+):
     value: Optional[str] = request.query_params.get("value")
     if value is not None:
         count = c.tag_service.value_usage_count(tag_id, value)
@@ -36,7 +44,11 @@ def tag_usage(tag_id: str, request: Request, c: ServiceContainer = Depends(get_c
 
 
 @router.post("/tags")
-def upsert_tag(body: dict[str, Any], c: ServiceContainer = Depends(get_container)):
+def upsert_tag(
+    body: dict[str, Any],
+    principal: Principal = Depends(require_permission("inventory:write")),
+    c: ServiceContainer = Depends(get_container),
+):
     tag_def = body.get("tagDef")
     if not isinstance(tag_def, dict):
         return JSONResponse({"error": "'tagDef' must be an object"}, status_code=400)
@@ -46,7 +58,12 @@ def upsert_tag(body: dict[str, Any], c: ServiceContainer = Depends(get_container
 
 
 @router.delete("/tags/{tag_id}")
-def delete_tag(tag_id: str, request: Request, c: ServiceContainer = Depends(get_container)):
+def delete_tag(
+    tag_id: str,
+    request: Request,
+    principal: Principal = Depends(require_permission("inventory:write")),
+    c: ServiceContainer = Depends(get_container),
+):
     actor = request.query_params.get("_actor")
     force = request.query_params.get("force", "false") == "true"
     try:

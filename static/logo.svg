@@ -21,7 +21,7 @@
 
   <!-- wordmark -->
   <text x="120" y="68" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-        font-size="40" font-weight="650" fill="#1C2331">Config<tspan fill="#6B5B95">Forge</tspan></text>
+        font-size="40" font-weight="650" fill="#1C2331">Config<tspan fill="#6B5B95">Foundry</tspan></text>
   <text x="121" y="92" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
         font-size="13" fill="#6B7280" letter-spacing="0.3">SNMP collector config, generated from a shared inventory</text>
 </svg>

@@ -7,20 +7,20 @@ backend.  ``AppConfig`` is the application-level configuration root.
 Loading priority (highest wins)
 ---------------------------------
 1. Explicit constructor kwargs / ``from_dict()``
-2. Environment variables (``CONFIGFORGE_DB_*``, ``CONFIGFORGE_LOG_*``)
-3. YAML configuration file (``--config`` flag or ``CONFIGFORGE_CONFIG`` env var)
+2. Environment variables (``CONFIGFOUNDRY_DB_*``, ``CONFIGFOUNDRY_LOG_*``)
+3. YAML configuration file (``--config`` flag or ``CONFIGFOUNDRY_CONFIG`` env var)
 4. Built-in defaults
 
 Environment variables
 ---------------------
-``CONFIGFORGE_DB_PROVIDER``     — sqlite | postgresql | mysql | sqlserver
-``CONFIGFORGE_DB_SQLITE_PATH``  — path to .db file (SQLite only)
-``CONFIGFORGE_DB_URL``          — full connection URL (non-SQLite providers)
-``CONFIGFORGE_DB_POOL_SIZE``    — integer, connection pool size (default 5)
-``CONFIGFORGE_DB_MAX_OVERFLOW`` — integer, pool overflow (default 10)
-``CONFIGFORGE_DB_ECHO``         — true | false, SQLAlchemy statement logging
+``CONFIGFOUNDRY_DB_PROVIDER``     — sqlite | postgresql | mysql | sqlserver
+``CONFIGFOUNDRY_DB_SQLITE_PATH``  — path to .db file (SQLite only)
+``CONFIGFOUNDRY_DB_URL``          — full connection URL (non-SQLite providers)
+``CONFIGFOUNDRY_DB_POOL_SIZE``    — integer, connection pool size (default 5)
+``CONFIGFOUNDRY_DB_MAX_OVERFLOW`` — integer, pool overflow (default 10)
+``CONFIGFOUNDRY_DB_ECHO``         — true | false, SQLAlchemy statement logging
 
-See ``core/logging/config.py`` for ``CONFIGFORGE_LOG_*`` variables.
+See ``core/logging/config.py`` for ``CONFIGFOUNDRY_LOG_*`` variables.
 
 YAML example
 ------------
@@ -28,7 +28,7 @@ YAML example
 
     database:
       provider: sqlite
-      sqlite_path: ./db/configforge.db
+      sqlite_path: ./db/configfoundry.db
 
     logging:
       level: INFO
@@ -40,7 +40,7 @@ YAML example
     # or for PostgreSQL (future):
     database:
       provider: postgresql
-      connection_url: postgresql+psycopg2://user:pass@host:5432/configforge
+      connection_url: postgresql+psycopg2://user:pass@host:5432/configfoundry
       pool_size: 10
       max_overflow: 20
 """
@@ -51,6 +51,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from core.logging.config import LoggingConfig
+from core.security.config import SecurityConfig
 
 
 # ---------------------------------------------------------------------------
@@ -86,7 +87,7 @@ class DatabaseConfig:
     """
 
     provider: str = "sqlite"
-    sqlite_path: str = "db/configforge.db"
+    sqlite_path: str = "db/configfoundry.db"
     connection_url: Optional[str] = None
     pool_size: int = 5
     max_overflow: int = 10
@@ -112,22 +113,22 @@ class DatabaseConfig:
     @classmethod
     def from_env(cls) -> "DatabaseConfig":
         """
-        Build a ``DatabaseConfig`` from ``CONFIGFORGE_DB_*`` environment
+        Build a ``DatabaseConfig`` from ``CONFIGFOUNDRY_DB_*`` environment
         variables.  Missing variables fall back to dataclass defaults.
         """
         kwargs: dict = {}
 
-        if v := os.environ.get("CONFIGFORGE_DB_PROVIDER"):
+        if v := os.environ.get("CONFIGFOUNDRY_DB_PROVIDER"):
             kwargs["provider"] = v
-        if v := os.environ.get("CONFIGFORGE_DB_SQLITE_PATH"):
+        if v := os.environ.get("CONFIGFOUNDRY_DB_SQLITE_PATH"):
             kwargs["sqlite_path"] = v
-        if v := os.environ.get("CONFIGFORGE_DB_URL"):
+        if v := os.environ.get("CONFIGFOUNDRY_DB_URL"):
             kwargs["connection_url"] = v
-        if v := os.environ.get("CONFIGFORGE_DB_POOL_SIZE"):
+        if v := os.environ.get("CONFIGFOUNDRY_DB_POOL_SIZE"):
             kwargs["pool_size"] = int(v)
-        if v := os.environ.get("CONFIGFORGE_DB_MAX_OVERFLOW"):
+        if v := os.environ.get("CONFIGFOUNDRY_DB_MAX_OVERFLOW"):
             kwargs["max_overflow"] = int(v)
-        if v := os.environ.get("CONFIGFORGE_DB_ECHO"):
+        if v := os.environ.get("CONFIGFOUNDRY_DB_ECHO"):
             kwargs["echo"] = v.strip().lower() in ("true", "1", "yes")
 
         return cls(**kwargs)
@@ -149,11 +150,12 @@ class AppConfig:
     logging:
         Logging framework configuration (level, file, rotation, etc.).
         Parsed from the ``logging:`` section of the YAML config file or
-        ``CONFIGFORGE_LOG_*`` environment variables.
+        ``CONFIGFOUNDRY_LOG_*`` environment variables.
     """
 
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    security: SecurityConfig = field(default_factory=SecurityConfig)
 
     # ------------------------------------------------------------------
     # Factory class-methods
@@ -164,9 +166,11 @@ class AppConfig:
         """Build an ``AppConfig`` from a nested dictionary."""
         db_data  = data.get("database", {})
         log_data = data.get("logging", {})
+        sec_data = data.get("security", {})
         return cls(
             database=DatabaseConfig.from_dict(db_data),
             logging=LoggingConfig.from_dict(log_data),
+            security=SecurityConfig.from_dict(sec_data),
         )
 
     @classmethod
@@ -174,12 +178,14 @@ class AppConfig:
         """
         Build an ``AppConfig`` from environment variables.
 
-        Reads ``CONFIGFORGE_DB_*`` for the database section and
-        ``CONFIGFORGE_LOG_*`` for the logging section.
+        Reads ``CONFIGFOUNDRY_DB_*`` for the database section,
+        ``CONFIGFOUNDRY_LOG_*`` for the logging section, and
+        ``CONFIGFOUNDRY_AUTH_*`` for the security section.
         """
         return cls(
             database=DatabaseConfig.from_env(),
             logging=LoggingConfig.from_env(),
+            security=SecurityConfig.from_env(),
         )
 
     @classmethod
@@ -194,7 +200,7 @@ class AppConfig:
 
             database:
               provider: sqlite
-              sqlite_path: ./db/configforge.db
+              sqlite_path: ./db/configfoundry.db
         """
         try:
             import yaml  # type: ignore[import]

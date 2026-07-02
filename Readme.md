@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="/static/logo.svg" alt="ConfigForge" width="100%">
+  <img src="/static/logo.svg" alt="ConfigFoundry" width="100%">
 </p>
 
 <p align="center">
-  <a href="https://github.com/shivamsancc/ConfigForge"><img alt="repo" src="https://img.shields.io/badge/github-shivamsancc%2FConfigForge-181717?logo=github"></a>
+  <a href="https://github.com/shivamsancc/ConfigFoundry"><img alt="repo" src="https://img.shields.io/badge/github-shivamsancc%2FConfigFoundry-181717?logo=github"></a>
   <img alt="status" src="https://img.shields.io/badge/status-active-brightgreen">
   <img alt="python" src="https://img.shields.io/badge/python-3.12%2B-blue">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-lightgrey">
@@ -19,7 +19,7 @@
 ## Why this exists
 
 Network teams often track device inventory in a spreadsheet and hand-roll monitoring
-config from it. ConfigForge replaces that with a small shared web server: one person
+config from it. ConfigFoundry replaces that with a small shared web server: one person
 runs it on an always-on machine, and everyone on the team opens it in a browser to
 manage the same dataset together &mdash; no per-person spreadsheet copies, no merge
 conflicts, no "whose version is current?"
@@ -42,8 +42,8 @@ truth for monitoring config" part of it.
 ### Installation
 
 ```bash
-git clone https://github.com/shivamsancc/ConfigForge.git
-cd ConfigForge
+git clone https://github.com/shivamsancc/ConfigFoundry.git
+cd ConfigFoundry
 pip install -r requirements.txt
 ```
 
@@ -53,12 +53,12 @@ pip install -r requirements.txt
 python3 server.py
 ```
 
-Starts on **`http://localhost:8420/`**, creates `db/configforge.db` automatically, and opens your default browser. Press `Ctrl+C` to stop.
+Starts on **`http://localhost:8420/`**, creates `db/configfoundry.db` automatically, and opens your default browser. Press `Ctrl+C` to stop.
 
 ### Custom database path
 
 ```bash
-python3 server.py --db /path/to/shared/configforge.db
+python3 server.py --db /path/to/shared/configfoundry.db
 ```
 
 Point multiple team members at the same file on a shared drive so everyone works from the same dataset.
@@ -76,7 +76,7 @@ Default host is `0.0.0.0` (all interfaces). Default port is `8420`.
 ```
 python3 server.py --help
 
-  --db PATH         Path to SQLite database file (default: db/configforge.db)
+  --db PATH         Path to SQLite database file (default: db/configfoundry.db)
   --config FILE     Path to a YAML config file (enables PostgreSQL/MySQL/etc.)
   --port PORT       Port to listen on (default: 8420)
   --host HOST       Interface to bind (default: 0.0.0.0)
@@ -150,8 +150,10 @@ Any change to a `.py` file triggers an automatic restart.
 
 ### First run walkthrough
 
-From the empty dashboard, three steps to your first generated file:
-
+0. **Log in** &rarr; the server prints the bootstrap Super Admin's email and a
+   generated password to the console on first startup (or use the
+   `CONFIGFOUNDRY_AUTH_BOOTSTRAP_EMAIL` / `_PASSWORD` env vars to set your
+   own beforehand). See [`docs/authentication.md`](docs/authentication.md).
 1. **Manage Lists** &rarr; add a Collector Region (e.g. `aws-mumbai`).
 2. **Devices** &rarr; add a device, assign it that Collector Region.
 3. **Generate YAML** &rarr; click Generate. You now have a YAML file derived from that device.
@@ -165,37 +167,41 @@ FastAPI generates interactive API documentation automatically:
 | `http://localhost:8420/docs` | Swagger UI — try every endpoint in the browser |
 | `http://localhost:8420/redoc` | ReDoc — alternative read-only reference |
 
+Every endpoint except `/api/v1/auth/login`, `/refresh`, and `/mfa/verify`
+requires a bearer token. In Swagger UI, call `/api/v1/auth/login` first, then
+click **Authorize** and paste the returned `access_token`.
+
 ### Environment variables
 
-All database settings can be provided via environment variables instead of CLI flags or a YAML file. Each uses the `CONFIGFORGE_DB_` prefix:
+All database settings can be provided via environment variables instead of CLI flags or a YAML file. Each uses the `CONFIGFOUNDRY_DB_` prefix:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CONFIGFORGE_DB_PROVIDER` | `sqlite` | Storage backend (`sqlite`, `postgresql`, `mysql`, `sqlserver`) |
-| `CONFIGFORGE_DB_SQLITE_PATH` | `db/configforge.db` | Path to SQLite file (or `:memory:`) |
-| `CONFIGFORGE_DB_CONNECTION_URL` | — | Full SQLAlchemy URL for non-SQLite backends |
-| `CONFIGFORGE_DB_POOL_SIZE` | `5` | Connection pool size |
-| `CONFIGFORGE_DB_MAX_OVERFLOW` | `10` | Max connections above pool size |
-| `CONFIGFORGE_DB_ECHO` | `false` | Log all SQL statements (`true`/`false`) |
+| `CONFIGFOUNDRY_DB_PROVIDER` | `sqlite` | Storage backend (`sqlite`, `postgresql`, `mysql`, `sqlserver`) |
+| `CONFIGFOUNDRY_DB_SQLITE_PATH` | `db/configfoundry.db` | Path to SQLite file (or `:memory:`) |
+| `CONFIGFOUNDRY_DB_CONNECTION_URL` | — | Full SQLAlchemy URL for non-SQLite backends |
+| `CONFIGFOUNDRY_DB_POOL_SIZE` | `5` | Connection pool size |
+| `CONFIGFOUNDRY_DB_MAX_OVERFLOW` | `10` | Max connections above pool size |
+| `CONFIGFOUNDRY_DB_ECHO` | `false` | Log all SQL statements (`true`/`false`) |
 
-Logging is configured separately with `CONFIGFORGE_LOG_*` variables:
+Logging is configured separately with `CONFIGFOUNDRY_LOG_*` variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CONFIGFORGE_LOG_LEVEL` | `INFO` | Minimum log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) |
-| `CONFIGFORGE_LOG_FILE` | — | Log file path; omit for console-only |
-| `CONFIGFORGE_LOG_CONSOLE` | `true` | Write to stderr (`true`/`false`) |
-| `CONFIGFORGE_LOG_JSON` | `false` | Emit JSON lines instead of human-readable text |
-| `CONFIGFORGE_LOG_ROTATION` | `daily` | `daily`, `size`, or `none` |
-| `CONFIGFORGE_LOG_BACKUP_COUNT` | `7` | Number of rotated files to keep |
-| `CONFIGFORGE_LOG_MAX_BYTES` | `10485760` | Max file size before rotation (rotation=size only) |
+| `CONFIGFOUNDRY_LOG_LEVEL` | `INFO` | Minimum log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) |
+| `CONFIGFOUNDRY_LOG_FILE` | — | Log file path; omit for console-only |
+| `CONFIGFOUNDRY_LOG_CONSOLE` | `true` | Write to stderr (`true`/`false`) |
+| `CONFIGFOUNDRY_LOG_JSON` | `false` | Emit JSON lines instead of human-readable text |
+| `CONFIGFOUNDRY_LOG_ROTATION` | `daily` | `daily`, `size`, or `none` |
+| `CONFIGFOUNDRY_LOG_BACKUP_COUNT` | `7` | Number of rotated files to keep |
+| `CONFIGFOUNDRY_LOG_MAX_BYTES` | `10485760` | Max file size before rotation (rotation=size only) |
 
 Environment variables are read by `AppConfig.from_env()`. To use them with the server, set them before starting:
 
 ```bash
-CONFIGFORGE_DB_SQLITE_PATH=/mnt/shared/configforge.db \
-CONFIGFORGE_LOG_FILE=logs/configfoundry.log \
-CONFIGFORGE_LOG_LEVEL=DEBUG \
+CONFIGFOUNDRY_DB_SQLITE_PATH=/mnt/shared/configfoundry.db \
+CONFIGFOUNDRY_LOG_FILE=logs/configfoundry.log \
+CONFIGFOUNDRY_LOG_LEVEL=DEBUG \
 python3 server.py
 ```
 
@@ -207,7 +213,7 @@ For non-SQLite backends or to version-control your deployment config, pass a YAM
 # config.yaml
 database:
   provider: postgresql
-  connection_url: "postgresql+psycopg2://user:pass@db-host:5432/configforge"
+  connection_url: "postgresql+psycopg2://user:pass@db-host:5432/configfoundry"
   pool_size: 10
   max_overflow: 20
   echo: false
@@ -357,18 +363,17 @@ and zoom around a few hundred devices without losing your place.
 
 ## Limitations and non-goals
 
-Things ConfigForge deliberately does not try to be, so you can decide quickly
+Things ConfigFoundry deliberately does not try to be, so you can decide quickly
 whether it fits:
 
 - **Not a CMDB.** It tracks the fields needed to generate monitoring config
   (IP, region, credentials, a handful of tags) &mdash; it doesn't model
   ownership, lifecycle, warranty, or asset relationships beyond
   subnet/device/bandwidth.
-- **No RBAC.** Anyone who can reach the server can read and write everything.
-  The "editor name" prompt is for audit-log attribution, not access control.
-- **No authentication on the API.** Same caveat as the credentials section
-  below &mdash; if you need real access control, put this behind a reverse
-  proxy or VPN.
+- **Single-tenant inventory, multi-tenant auth.** The RBAC/API-key/policy
+  layer is fully organization-scoped, but the inventory tables themselves
+  (devices, bandwidth, subnets, etc.) aren't yet split per-organization --
+  see [`docs/authentication.md`](docs/authentication.md#known-scope-boundaries).
 - **Single shared SQLite file, no locking beyond SQLite's own WAL mode.**
   Two people editing the same record at the same moment: last write wins,
   there's no optimistic-locking or conflict warning. For the team-sized usage
@@ -376,11 +381,11 @@ whether it fits:
   not editing the same device simultaneously) this hasn't been a problem in
   practice, but it's not battle-tested under heavy concurrent write load and
   you should know that going in.
-- **Test suite covers the backend only.** The `tests/` directory contains 476 passing tests across repositories, services, handlers, the storage abstraction layer, the logging framework, and database migrations. Frontend behaviour is still verified by hand against a real browser.
+- **Test suite covers the backend only.** The `tests/` directory contains 577 passing tests across repositories, services, handlers, the storage abstraction layer, the logging framework, database migrations, and the authentication/RBAC/policy layer. Frontend behaviour is still verified by hand against a real browser.
 
 ## Upgrading
 
-Updating ConfigForge is: copy the new `.py` and `static/` files over the old ones, restart the server. That's the whole process — no manual migration script to remember, no risk of forgetting a step.
+Updating ConfigFoundry is: copy the new `.py` and `static/` files over the old ones, restart the server. That's the whole process — no manual migration script to remember, no risk of forgetting a step.
 
 Database schema changes are managed by [Alembic](https://alembic.sqlalchemy.org/) (the standard SQLAlchemy migration toolkit). On every startup, `core.migrations.runner` calls `alembic upgrade head`, which applies any migrations that haven't yet run on the live database — and is a no-op if the database is already current. If a migration fails, the server aborts startup and the database is left exactly as it was.
 
@@ -392,16 +397,39 @@ See [`docs/database-migrations.md`](docs/database-migrations.md) for the full mi
 
 ## Security
 
-SNMPv3 `authKey`/`privKey` values are encrypted at rest with AES-256-GCM, using a
-key embedded in `storage.py`. This protects the raw `.db` file itself (e.g. if
-someone copies it off a shared drive or finds it in a backup) but is **not** an
-access-control mechanism for the running app &mdash; anyone who can reach the
-server's HTTP port can use it normally, the same way anyone with the original
-spreadsheet could read it. There's no authentication on the API, no rate
-limiting, and no RBAC (see [Limitations and non-goals](#limitations-and-non-goals)
-above). This is a deliberate, documented tradeoff in favor of staying simple and
-dependency-free; if your environment needs real authentication, put ConfigForge
-behind a reverse proxy or VPN.
+ConfigFoundry ships with a full authentication, RBAC, and Access Policy Engine
+layer &mdash; the API is no longer open by default. Every request needs a
+`Bearer` token: either a user JWT from `/api/v1/auth/login`, or a service-account
+API key from `/api/v1/api-keys`. Full details, configuration reference, and a
+SOC 2 control mapping live in [`docs/authentication.md`](docs/authentication.md)
+and [`docs/compliance-soc2.md`](docs/compliance-soc2.md); the short version:
+
+* **Passwords**: Argon2id-hashed, never stored or logged in plaintext.
+* **Tokens**: short-lived JWT access tokens + rotating, hashed refresh tokens
+  with reuse detection.
+* **MFA**: TOTP (RFC 6238) with backup codes, optional per-role.
+* **RBAC**: fine-grained permission codes, never a hardcoded role check;
+  five system roles plus unlimited custom roles.
+* **Access Policy Engine**: IP allow/deny rules evaluated before authentication.
+* **Audit log**: every security-sensitive action (login, role change, API key
+  creation, access denial, etc.) is recorded with actor, IP, and result.
+
+The very first startup seeds one Super Admin account &mdash; set
+`CONFIGFOUNDRY_AUTH_BOOTSTRAP_EMAIL` / `CONFIGFOUNDRY_AUTH_BOOTSTRAP_PASSWORD`
+beforehand, or a random password is generated and printed once to the
+server log.
+
+SNMPv3 `authKey`/`privKey` values are separately encrypted at rest with
+AES-256-GCM, using a static key embedded in the device repository (see the
+comment there for why that literal must never be edited). This protects the
+raw `.db` file itself (e.g. if someone copies it off a shared drive or finds
+it in a backup) and is unrelated to the auth layer above, which protects the
+running application.
+
+Multi-tenancy note: the auth/RBAC/policy layer is fully organization-scoped,
+but the pre-existing inventory tables (devices, bandwidth, subnets, etc.) are
+not yet retrofitted with `org_id` &mdash; see "Known scope boundaries" in
+`docs/authentication.md`.
 
 ## Architecture
 
@@ -482,7 +510,7 @@ Every request is tagged with a 12-character hex correlation ID (`X-Request-ID` h
 2024-01-15 10:30:45 INFO     configfoundry.http    [a3f8c2d1e5b4] GET /api/v1/devices → 200 (12.3ms) ip=127.0.0.1
 ```
 
-All application code acquires a logger with `get_logger(__name__)` from `core.logging`. The `configure_logging()` function is called once in `server.py` before `create_app()`, reads from `AppConfig.logging` (populated from the YAML `logging:` section or `CONFIGFORGE_LOG_*` env vars), and attaches handlers to the single `configfoundry` root logger. No module calls `logging.basicConfig()` directly.
+All application code acquires a logger with `get_logger(__name__)` from `core.logging`. The `configure_logging()` function is called once in `server.py` before `create_app()`, reads from `AppConfig.logging` (populated from the YAML `logging:` section or `CONFIGFOUNDRY_LOG_*` env vars), and attaches handlers to the single `configfoundry` root logger. No module calls `logging.basicConfig()` directly.
 
 Request bodies are never logged. Exceptions are logged with full traceback on the server; clients receive only `{"error": "...", "type": "..."}`.
 
@@ -575,7 +603,7 @@ The complete request/response contract is available interactively at **`http://l
 
 This is a young project &mdash; I'm the sole maintainer so far. Issues and pull
 requests are welcome at
-[github.com/shivamsancc/ConfigForge](https://github.com/shivamsancc/ConfigForge).
+[github.com/shivamsancc/ConfigFoundry](https://github.com/shivamsancc/ConfigFoundry).
 
 The project optimizes for running on locked-down, offline, single-team
 infrastructure over almost anything else. If a PR trades that away for

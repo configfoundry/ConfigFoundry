@@ -4,7 +4,7 @@ Tests for core.logging.config — LoggingConfig dataclass.
 Covers:
 - Default values
 - from_dict() with known and unknown keys
-- from_env() for each CONFIGFORGE_LOG_* variable
+- from_env() for each CONFIGFOUNDRY_LOG_* variable
 - Boolean coercion edge cases
 """
 import os
@@ -91,10 +91,10 @@ class TestLoggingConfigFromEnv(unittest.TestCase):
 
     def tearDown(self):
         for key in [
-            "CONFIGFORGE_LOG_LEVEL", "CONFIGFORGE_LOG_FILE",
-            "CONFIGFORGE_LOG_CONSOLE", "CONFIGFORGE_LOG_JSON",
-            "CONFIGFORGE_LOG_ROTATION", "CONFIGFORGE_LOG_BACKUP_COUNT",
-            "CONFIGFORGE_LOG_MAX_BYTES",
+            "CONFIGFOUNDRY_LOG_LEVEL", "CONFIGFOUNDRY_LOG_FILE",
+            "CONFIGFOUNDRY_LOG_CONSOLE", "CONFIGFOUNDRY_LOG_JSON",
+            "CONFIGFOUNDRY_LOG_ROTATION", "CONFIGFOUNDRY_LOG_BACKUP_COUNT",
+            "CONFIGFOUNDRY_LOG_MAX_BYTES",
         ]:
             os.environ.pop(key, None)
 
@@ -105,43 +105,43 @@ class TestLoggingConfigFromEnv(unittest.TestCase):
         self.assertTrue(cfg.console)
 
     def test_level_from_env(self):
-        self._set_env(CONFIGFORGE_LOG_LEVEL="debug")
+        self._set_env(CONFIGFOUNDRY_LOG_LEVEL="debug")
         cfg = LoggingConfig.from_env()
         self.assertEqual(cfg.level, "DEBUG")   # uppercased
 
     def test_file_from_env(self):
-        self._set_env(CONFIGFORGE_LOG_FILE="/var/log/cf.log")
+        self._set_env(CONFIGFOUNDRY_LOG_FILE="/var/log/cf.log")
         cfg = LoggingConfig.from_env()
         self.assertEqual(cfg.file, "/var/log/cf.log")
 
     def test_console_false_from_env(self):
-        self._set_env(CONFIGFORGE_LOG_CONSOLE="false")
+        self._set_env(CONFIGFOUNDRY_LOG_CONSOLE="false")
         cfg = LoggingConfig.from_env()
         self.assertFalse(cfg.console)
 
     def test_console_true_variants(self):
         for val in ("true", "1", "yes", "True", "YES"):
-            self._set_env(CONFIGFORGE_LOG_CONSOLE=val)
+            self._set_env(CONFIGFOUNDRY_LOG_CONSOLE=val)
             cfg = LoggingConfig.from_env()
-            self.assertTrue(cfg.console, f"Expected True for CONFIGFORGE_LOG_CONSOLE={val!r}")
+            self.assertTrue(cfg.console, f"Expected True for CONFIGFOUNDRY_LOG_CONSOLE={val!r}")
 
     def test_json_format_from_env(self):
-        self._set_env(CONFIGFORGE_LOG_JSON="true")
+        self._set_env(CONFIGFOUNDRY_LOG_JSON="true")
         cfg = LoggingConfig.from_env()
         self.assertTrue(cfg.json_format)
 
     def test_rotation_from_env(self):
-        self._set_env(CONFIGFORGE_LOG_ROTATION="size")
+        self._set_env(CONFIGFOUNDRY_LOG_ROTATION="size")
         cfg = LoggingConfig.from_env()
         self.assertEqual(cfg.rotation, "size")
 
     def test_backup_count_from_env(self):
-        self._set_env(CONFIGFORGE_LOG_BACKUP_COUNT="14")
+        self._set_env(CONFIGFOUNDRY_LOG_BACKUP_COUNT="14")
         cfg = LoggingConfig.from_env()
         self.assertEqual(cfg.backup_count, 14)
 
     def test_max_bytes_from_env(self):
-        self._set_env(CONFIGFORGE_LOG_MAX_BYTES="52428800")
+        self._set_env(CONFIGFOUNDRY_LOG_MAX_BYTES="52428800")
         cfg = LoggingConfig.from_env()
         self.assertEqual(cfg.max_bytes, 52428800)
 

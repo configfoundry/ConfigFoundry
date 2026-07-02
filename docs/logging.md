@@ -29,7 +29,7 @@ core/logging/
 # config.yaml
 database:
   provider: sqlite
-  sqlite_path: db/configforge.db
+  sqlite_path: db/configfoundry.db
 
 logging:
   level: INFO                       # DEBUG | INFO | WARNING | ERROR | CRITICAL
@@ -47,24 +47,24 @@ python3 server.py --config config.yaml
 
 ### Environment variables
 
-All logging options can also be set via `CONFIGFORGE_LOG_*` variables, which take precedence over YAML defaults:
+All logging options can also be set via `CONFIGFOUNDRY_LOG_*` variables, which take precedence over YAML defaults:
 
 | Variable | Default | Description |
 |---|---|---|
-| `CONFIGFORGE_LOG_LEVEL` | `INFO` | Minimum log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) |
-| `CONFIGFORGE_LOG_FILE` | — | Log file path; omit for console-only |
-| `CONFIGFORGE_LOG_CONSOLE` | `true` | Write to stderr (`true`/`false`) |
-| `CONFIGFORGE_LOG_JSON` | `false` | Emit JSON lines instead of text |
-| `CONFIGFORGE_LOG_ROTATION` | `daily` | `daily`, `size`, or `none` |
-| `CONFIGFORGE_LOG_BACKUP_COUNT` | `7` | Number of rotated files to keep |
-| `CONFIGFORGE_LOG_MAX_BYTES` | `10485760` | Max file size before rotation (`rotation=size`) |
+| `CONFIGFOUNDRY_LOG_LEVEL` | `INFO` | Minimum log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`) |
+| `CONFIGFOUNDRY_LOG_FILE` | — | Log file path; omit for console-only |
+| `CONFIGFOUNDRY_LOG_CONSOLE` | `true` | Write to stderr (`true`/`false`) |
+| `CONFIGFOUNDRY_LOG_JSON` | `false` | Emit JSON lines instead of text |
+| `CONFIGFOUNDRY_LOG_ROTATION` | `daily` | `daily`, `size`, or `none` |
+| `CONFIGFOUNDRY_LOG_BACKUP_COUNT` | `7` | Number of rotated files to keep |
+| `CONFIGFOUNDRY_LOG_MAX_BYTES` | `10485760` | Max file size before rotation (`rotation=size`) |
 
 Example:
 
 ```bash
-CONFIGFORGE_LOG_LEVEL=DEBUG \
-CONFIGFORGE_LOG_FILE=logs/configfoundry.log \
-CONFIGFORGE_LOG_ROTATION=daily \
+CONFIGFOUNDRY_LOG_LEVEL=DEBUG \
+CONFIGFOUNDRY_LOG_FILE=logs/configfoundry.log \
+CONFIGFOUNDRY_LOG_ROTATION=daily \
 python3 server.py
 ```
 
