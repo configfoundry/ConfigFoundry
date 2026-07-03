@@ -223,6 +223,11 @@ else
   ok "Staged bundle passes full air-gap validation, including the import/boot check"
 fi
 
+# Validation above imports the application, which makes CPython write
+# fresh __pycache__/*.pyc files into the staged copy as a side effect.
+# Strip them again so they never end up in CHECKSUMS.sha256 or the zip.
+find "$STAGE_DIR" -type d -name "__pycache__" -prune -exec rm -rf {} + 2>/dev/null || true
+
 # ---------------------------------------------------------------------
 # 7. Checksum every staged file, then zip
 # ---------------------------------------------------------------------

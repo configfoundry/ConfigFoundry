@@ -32,7 +32,7 @@ docs/                    this documentation set
 ## Setting up a dev environment
 
 ```bash
-git clone https://github.com/shivamsancc/ConfigFoundry.git
+git clone https://github.com/configfoundry/ConfigFoundry.git
 cd ConfigFoundry
 python3 -m venv .venv && source .venv/bin/activate
 make install   # pip install (backend + dev deps) + npm install (frontend)

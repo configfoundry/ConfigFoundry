@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/shivamsancc/ConfigFoundry"><img alt="repo" src="https://img.shields.io/badge/github-shivamsancc%2FConfigFoundry-181717?logo=github"></a>
+  <a href="https://github.com/configfoundry/ConfigFoundry"><img alt="repo" src="https://img.shields.io/badge/github-configfoundry%2FConfigFoundry-181717?logo=github"></a>
   <img alt="status" src="https://img.shields.io/badge/status-enterprise%20preview%20(v0.5)-brightgreen">
   <img alt="python" src="https://img.shields.io/badge/python-3.10%2B-blue">
   <img alt="airgap" src="https://img.shields.io/badge/deployment-air--gap%20capable-informational">
@@ -80,7 +80,7 @@ The git repository is source only — no prebuilt frontend, no vendored
 npm packages — which is what keeps `git clone` lightweight.
 
 ```bash
-git clone https://github.com/shivamsancc/ConfigFoundry.git
+git clone https://github.com/configfoundry/ConfigFoundry.git
 cd ConfigFoundry
 pip install -r requirements.txt
 python3 server.py
@@ -179,7 +179,7 @@ including the versioning strategy and what's deliberately out of scope.
 ## Contributing
 
 Issues and pull requests are welcome at
-[github.com/shivamsancc/ConfigFoundry](https://github.com/shivamsancc/ConfigFoundry).
+[github.com/configfoundry/ConfigFoundry](https://github.com/configfoundry/ConfigFoundry).
 The project optimizes for running on locked-down, offline, single-team
 infrastructure over almost anything else — a PR that trades that away for
 convenience (a new dependency, an assumption the internet is reachable)

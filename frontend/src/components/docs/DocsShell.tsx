@@ -210,7 +210,7 @@ export function DocsShell({
           </nav>
           <div className="sidebar-footer">
             <span>ConfigFoundry Docs</span>
-            <a href="https://github.com/shivamsancc/ConfigFoundry" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/configfoundry/ConfigFoundry" target="_blank" rel="noopener noreferrer">
               GitHub ↗
             </a>
           </div>

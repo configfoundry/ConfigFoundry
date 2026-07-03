@@ -192,7 +192,7 @@ function ImportModal({
             style={{ fontSize: 13, color: 'var(--text-dim)' }}
           />
           <div className="field-hint" style={{ marginTop: 6 }}>
-            Tip: use "Export XLSX" first to get a template with the correct columns.
+            Tip: use &quot;Export XLSX&quot; first to get a template with the correct columns.
           </div>
         </div>
 

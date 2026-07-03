@@ -84,7 +84,7 @@ export default function DocumentationHome() {
         </p>
         <p>
           Looking for the project overview instead?{' '}
-          <a href="https://github.com/shivamsancc/ConfigFoundry" target="_blank" rel="noopener noreferrer">
+          <a href="https://github.com/configfoundry/ConfigFoundry" target="_blank" rel="noopener noreferrer">
             View on GitHub ↗
           </a>
         </p>

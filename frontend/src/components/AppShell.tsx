@@ -249,7 +249,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span>v0.5</span>
           <Link href="/documentation/">Docs</Link>
           <a
-            href="https://github.com/shivamsancc/ConfigFoundry"
+            href="https://github.com/configfoundry/ConfigFoundry"
             target="_blank"
             rel="noopener noreferrer"
           >

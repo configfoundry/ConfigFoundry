@@ -8,38 +8,7 @@ planned toward v1.0.
 
 ## [Unreleased]
 
-### Removed
-- Dead code: `core/db.py` and `core/migrations.py` (the pre-Alembic
-  `init_db()` entry point and its custom sqlite3 migration runner —
-  superseded by `core/migrations/runner.py`, unreferenced by anything
-  else). `core/storage.py`, an orphaned duplicate of the storage
-  compatibility shim that actually lives in `core/storage/__init__.py`
-  — Python's import resolution always preferred the package over this
-  identically-named module, so it was silently unreachable.
-- Several unused imports across the backend, and a genuine pre-existing
-  syntax error in `core/migrations_legacy.py`'s module docstring (the
-  file was never importable, but nothing imported it either — see
-  the "LEGACY migration system" note at the top of that file).
-
-### Changed
-- Repository cleanup: removed committed runtime database/WAL files,
-  fixed a `README.md` case-sensitivity issue, removed an orphaned
-  duplicate roadmap file, hardened `.gitignore` against common
-  Python/Node build caches.
-- `scripts/validate_airgap.py` now also verifies the application can
-  actually be imported and constructed from a fresh `--no-index`
-  install (`check_import_validation`), not just that `pip install`
-  succeeds — catches a missing runtime dependency before it ships.
-- `scripts/build_release_bundle.sh` now runs the full (not
-  `--skip-functional`) air-gap validation against the staged bundle
-  before zipping, so a release bundle missing a required package is
-  never produced.
-- CI: removed a leftover temporary debugging step from the offline
-  smoke-test job; added a repository-hygiene job that fails a build if
-  any tracked file exceeds 40 MB.
-- `Makefile`: added `install`, `install-backend`, `test`, `typecheck`,
-  and `lint` targets so common developer commands don't need to be
-  remembered by hand.
+Nothing yet — the next entry here starts once v0.5.0 is tagged.
 
 ## [0.5.0] - Enterprise Preview
 
@@ -77,6 +46,56 @@ path are stable and tested, but this is not yet a v1.0 commitment (see
   stays source-only and lightweight; the prebuilt frontend and npm
   vendor binaries now ship only inside the release bundle. See
   [Air-Gap Deployment § Repository vs. release artifact](docs/airgap.md#repository-vs-release-artifact).
+- Repository cleanup: removed committed runtime database/WAL files,
+  fixed a `README.md` case-sensitivity issue, removed an orphaned
+  duplicate roadmap file, hardened `.gitignore` against common
+  Python/Node build caches.
+- `scripts/validate_airgap.py` now also verifies the application can
+  actually be imported and constructed from a fresh `--no-index`
+  install (`check_import_validation`), not just that `pip install`
+  succeeds — catches a missing runtime dependency before it ships.
+- `scripts/build_release_bundle.sh` now runs the full (not
+  `--skip-functional`) air-gap validation against the staged bundle
+  before zipping, so a release bundle missing a required package is
+  never produced.
+- CI: removed a leftover temporary debugging step from the offline
+  smoke-test job; added a repository-hygiene job that fails a build if
+  any tracked file exceeds 40 MB.
+- `Makefile`: added `install`, `install-backend`, `test`, `typecheck`,
+  and `lint` targets so common developer commands don't need to be
+  remembered by hand.
 
-[Unreleased]: https://github.com/shivamsancc/ConfigFoundry/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/shivamsancc/ConfigFoundry/releases/tag/v0.5.0
+### Fixed
+- `make lint` / `npm run lint` did nothing but hang on an interactive
+  "how would you like to configure ESLint?" prompt — no ESLint config or
+  dependency was ever committed, despite the Makefile and docs
+  documenting it as a working command. Added `eslint` and
+  `eslint-config-next` as exactly-pinned dev dependencies and a minimal
+  `frontend/.eslintrc.json` (`next/core-web-vitals`) so it actually runs
+  non-interactively. Fixed the two real errors it surfaced (unescaped
+  quote characters in `inventory/page.tsx` JSX text — a text-escaping
+  fix only, no behavior change); three pre-existing
+  `react-hooks/exhaustive-deps` warnings remain and are left as-is,
+  since fixing them could change memoization/render behavior.
+- `scripts/build_release_bundle.sh` staged every release bundle with
+  ~137 stray `__pycache__`/`.pyc` files: the air-gap validation step
+  imports the application (to prove it boots), which makes CPython
+  write bytecode into the staged copy *after* the existing cruft-removal
+  step had already run, and nothing cleaned up afterward. Added a
+  second cleanup pass right before checksumming/zipping.
+
+### Removed
+- Dead code: `core/db.py` and `core/migrations.py` (the pre-Alembic
+  `init_db()` entry point and its custom sqlite3 migration runner —
+  superseded by `core/migrations/runner.py`, unreferenced by anything
+  else). `core/storage.py`, an orphaned duplicate of the storage
+  compatibility shim that actually lives in `core/storage/__init__.py`
+  — Python's import resolution always preferred the package over this
+  identically-named module, so it was silently unreachable.
+- Several unused imports across the backend, and a genuine pre-existing
+  syntax error in `core/migrations_legacy.py`'s module docstring (the
+  file was never importable, but nothing imported it either — see
+  the "LEGACY migration system" note at the top of that file).
+
+[Unreleased]: https://github.com/configfoundry/ConfigFoundry/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/configfoundry/ConfigFoundry/releases/tag/v0.5.0

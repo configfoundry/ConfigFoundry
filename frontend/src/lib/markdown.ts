@@ -54,7 +54,7 @@ function rewriteHref(hrefRaw: string): { href: string; external: boolean } {
   if (mdMatch) {
     const [, name, hash = ''] = mdMatch
     if (name.toLowerCase() === 'readme') {
-      return { href: 'https://github.com/shivamsancc/ConfigFoundry#readme', external: true }
+      return { href: 'https://github.com/configfoundry/ConfigFoundry#readme', external: true }
     }
     return { href: `/documentation/${name.toLowerCase()}/${hash}`, external: false }
   }

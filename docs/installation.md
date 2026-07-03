@@ -56,7 +56,7 @@ access" is verified: [Air-Gap Deployment](./airgap.md).
 ## Method 2: from source, with internet access
 
 ```bash
-git clone https://github.com/shivamsancc/ConfigFoundry.git
+git clone https://github.com/configfoundry/ConfigFoundry.git
 cd ConfigFoundry
 pip install -r requirements.txt
 ```
