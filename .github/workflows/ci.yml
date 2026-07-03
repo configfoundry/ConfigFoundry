@@ -114,6 +114,14 @@ jobs:
     name: Build offline release bundle
     runs-on: ubuntu-latest
     needs: [backend-tests, frontend-typecheck, airgap-validation, docs-build]
+    # Default GITHUB_TOKEN permissions are read-only repo-wide unless a
+    # workflow opts in explicitly (GitHub's default since March 2023).
+    # This job is the only one that publishes a GitHub Release (tag
+    # pushes only, via softprops/action-gh-release below), so it's the
+    # only job that needs contents: write -- every other job stays at
+    # the implicit read-only default.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
