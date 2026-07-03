@@ -25,13 +25,18 @@ on `main` and passed CI — there's no fixed cadence. See
 2. `python3 scripts/validate_airgap.py` passes with no `--skip-functional`.
 3. `python -m pytest -q` passes locally as a final sanity check.
 4. Version bumped in `frontend/package.json`.
-5. Offline vendor bundles regenerated if any dependency changed since
+5. `CHANGELOG.md` has a `## [X.Y.Z]` section for the version being
+   released — CI extracts this section automatically for the GitHub
+   Release body (see Publishing below); if it's missing, the release
+   still publishes but with a generic fallback note instead of real
+   release notes.
+6. Offline vendor bundles regenerated if any dependency changed since
    the last release:
    ```bash
    ./scripts/build_python_wheelhouse.sh --with-dev
    ./scripts/build_npm_offline_vendor.sh
    ```
-6. `docs/` reviewed for anything the release changed — no page should
+7. `docs/` reviewed for anything the release changed — no page should
    describe behavior that no longer matches the code (see
    [Contributing § What gets prioritized in review](./contributing.md#what-gets-prioritized-in-review)).
 
@@ -70,20 +75,31 @@ ConfigFoundry-Offline-vX.Y.Z/
   CHECKSUMS.sha256             checksums of every file in the archive itself
 ```
 
-The script builds the frontend fresh, runs `validate_airgap.py` against
-the assembled contents before zipping (a release that would fail air-gap
-validation never gets published), and writes a top-level
-`CHECKSUMS.sha256` so the archive's own integrity can be verified after
-transfer to an air-gapped machine — a common requirement for moving
-software across a physical air gap (e.g. via approved removable media)
-in regulated environments.
+The script builds the frontend fresh, then runs the **full**
+`validate_airgap.py` (not `--skip-functional`) against the assembled
+contents before zipping — including installing into a throwaway
+virtualenv with `--no-index` and then actually importing and
+constructing the application from it. A release that would fail
+air-gap validation, or whose bundle is missing a runtime package
+`requirements.txt` doesn't actually pin, never gets zipped. Finally it
+writes a top-level `CHECKSUMS.sha256` so the archive's own integrity
+can be verified after transfer to an air-gapped machine — a common
+requirement for moving software across a physical air gap (e.g. via
+approved removable media) in regulated environments.
 
 ## Publishing
 
-Attach `ConfigFoundry-Offline-vX.Y.Z.zip` (and its standalone
-`.sha256` checksum file) to the GitHub release for that tag, alongside
-release notes summarizing what changed. Tag `main` at the exact commit
-the bundle was built from.
+Pushing a `vX.Y.Z` tag on `main` is the only manual step — CI's
+`build-release-bundle` job does the rest: it builds the bundle, extracts
+the matching `## [X.Y.Z]` section from `CHANGELOG.md` as the release
+body, and attaches `ConfigFoundry-Offline-vX.Y.Z.zip` plus its
+`.sha256` checksum to the GitHub release for that tag. Tag `main` at
+the exact commit the bundle should be built from:
+
+```bash
+git tag v0.5.0
+git push origin v0.5.0
+```
 
 ## Verifying a release before trusting it
 

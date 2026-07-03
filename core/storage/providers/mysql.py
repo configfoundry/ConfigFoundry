@@ -7,7 +7,8 @@ To implement
 ------------
 1. Add ``mysqlclient`` or ``PyMySQL`` to requirements.
 2. Implement ``_build_engine()`` using ``config.connection_url``.
-3. Wire migrations (Alembic or adapt migrations.py).
+3. Migrations already run through ``core/migrations/runner.py`` (Alembic) —
+   no separate wiring needed here, same as the SQLite provider.
 4. Remove the ``NotImplementedError`` from ``initialize()``.
 5. Update driver / dialect strings in ``get_metadata()``.
 

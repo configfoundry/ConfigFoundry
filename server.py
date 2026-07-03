@@ -19,7 +19,6 @@ with zero flags and get something working immediately.
 """
 import argparse
 import os
-import sys
 import threading
 import time
 import webbrowser
@@ -28,7 +27,7 @@ import uvicorn
 
 from app import create_app
 from core.logging import configure_logging
-from core.storage.config import AppConfig, DatabaseConfig
+from core.storage.config import AppConfig
 
 
 def parse_args():
@@ -117,7 +116,7 @@ def main():
     url = f"http://{display_host}:{args.port}/"
 
     print("=" * 60)
-    print(f"  ConfigFoundry is running")
+    print("  ConfigFoundry is running")
     print(f"  Provider: {config.database.provider}")
     print(f"  Local:    http://localhost:{args.port}/")
     if args.host == "0.0.0.0":

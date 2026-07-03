@@ -7,9 +7,10 @@ bundles (when bumping a dependency version) needs internet access, and
 that's a build-time step, never a runtime one.
 
 **Do I need Node.js installed?**
-Only if you're rebuilding the frontend from source. The release bundle
-and a normal git clone both include a pre-built `frontend/out/` static
-export, so most installs never touch Node. See
+Only if you're building the frontend from a git clone. A release bundle
+(`ConfigFoundry-Offline-vX.Y.Z.zip`) ships a pre-built `frontend/out/`
+static export, so installing from one never touches Node — a bare
+`git clone` does need one `make build` first. See
 [Installation](./installation.md).
 
 **What database should I use?**

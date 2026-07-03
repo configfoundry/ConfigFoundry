@@ -9,7 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from core.repositories.interfaces import IMFABackupCodeRepository
-from core.security.tokens import hash_token, verify_token
+from core.security.tokens import verify_token
 
 if TYPE_CHECKING:
     from core.storage.provider import StorageProvider

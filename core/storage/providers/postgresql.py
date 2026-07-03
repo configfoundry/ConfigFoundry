@@ -11,8 +11,8 @@ To implement
 ------------
 1. Add ``psycopg2`` (or ``asyncpg``) to requirements.
 2. Implement ``_build_engine()`` using the URL from ``config.connection_url``.
-3. Replace the ``core.migrations`` sqlite3 runner with an Alembic runner
-   (or adapt migrations.py to accept a SQLAlchemy connection).
+3. Schema migration is already provider-agnostic (see ``core/migrations/runner.py``,
+   Alembic-based) — no migration-runner work needed here.
 4. Remove the ``NotImplementedError`` from ``initialize()``.
 5. Update the ``driver`` / ``dialect`` in ``get_metadata()``.
 6. Write integration tests against a real PostgreSQL instance (docker-compose).

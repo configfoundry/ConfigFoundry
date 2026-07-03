@@ -35,14 +35,11 @@ docs/                    this documentation set
 git clone https://github.com/shivamsancc/ConfigFoundry.git
 cd ConfigFoundry
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt
+make install   # pip install (backend + dev deps) + npm install (frontend)
 ```
 
-Frontend, if you're changing it:
-
-```bash
-cd frontend && npm install
-```
+`make install` runs both steps; `make install-backend` and
+`make install-frontend` run either alone if you only need one.
 
 ## Running it locally
 
@@ -79,19 +76,20 @@ leaving you to debug unrelated tooling noise.
 ## Running the tests
 
 ```bash
-python -m pytest -q                    # full suite
+make test                              # full suite (same as CI's backend-tests job)
+python -m pytest -q                    # equivalent, if you want pytest flags directly
 python -m pytest tests/security -q     # one area
 python -m pytest -k test_login -q      # by name
 ```
 
-This is the same command CI runs (`backend-tests` job). See
-`tests/` for the directory layout, mirroring the package structure
+See `tests/` for the directory layout, mirroring the package structure
 (`tests/security/`, `tests/storage/`, `tests/services/`, etc.).
 
-Frontend typechecking:
+Frontend typechecking and linting:
 
 ```bash
-cd frontend && npx tsc --noEmit
+make typecheck    # tsc --noEmit
+make lint         # next lint
 ```
 
 ## Making a schema change
@@ -133,6 +131,12 @@ Explicit over clever, per the [architecture principles](./architecture.md#princi
 No hardcoded role-name checks (use permission codes). No new external
 CDN/network dependency in application source — `validate_airgap.py` will
 catch it, but it's cheaper to know the rule going in.
+
+There's no Python linter/formatter wired in (`make lint` only covers the
+frontend, via `next lint`) — this is deliberate, not an oversight: it's
+one fewer pinned dependency to vendor and keep air-gap-clean, and the
+codebase is small enough that consistent style is enforced in review
+instead. `requirements-dev.txt` stays pytest-only for the same reason.
 
 ## See also
 

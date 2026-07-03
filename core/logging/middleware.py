@@ -37,7 +37,6 @@ Security notes
 from __future__ import annotations
 
 import time
-import logging
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -45,7 +44,6 @@ from starlette.responses import Response
 
 from core.logging.context import (
     generate_request_id,
-    get_request_id,
     reset_request_id,
     set_request_id,
 )

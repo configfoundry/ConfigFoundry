@@ -115,8 +115,6 @@ account exists:
 
 ## Reporting a vulnerability
 
-If you find a security issue, report it privately rather than opening a
-public GitHub issue — use GitHub's private security advisory feature on
-the repository, or contact the maintainer directly. Include the affected
-version, reproduction steps, and impact assessment if you have one.
-There is no bug bounty program at this time.
+See [SECURITY.md](../SECURITY.md) in the repository root — report
+privately (GitHub's private security advisory feature, or the
+maintainer directly), never as a public issue.

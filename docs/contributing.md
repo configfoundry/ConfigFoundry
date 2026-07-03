@@ -56,8 +56,10 @@ instead of a public issue.
 
 ## Style
 
-No enforced formatter/linter beyond `tsc --noEmit` for the frontend at
-this time — match the surrounding code's style, prefer explicit code
+`make typecheck` and `make lint` cover the frontend (`tsc --noEmit` and
+`next lint`); there's no enforced Python formatter/linter (see
+[Development § Code style](./development.md#code-style) for why that's
+deliberate). Match the surrounding code's style, prefer explicit code
 over clever abstractions (see the architecture principles), and keep
 functions small enough that a reviewer can hold the whole thing in their
 head.

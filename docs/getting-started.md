@@ -11,7 +11,7 @@ production, air-gapped, or non-SQLite deployments, see
 - Python 3.10 or newer
 - Node.js 18+ — only if you're building the Next.js frontend from a
   source checkout. If you'd rather skip Node entirely, grab a
-  [release bundle](./installation.md#method-1-release-bundle-recommended-for-offline--air-gapped)
+  [release bundle](./installation.md#method-1-release-bundle-recommended-for-offline-air-gapped)
   instead — it ships a prebuilt `frontend/out/` and needs neither Node
   nor internet access.
 

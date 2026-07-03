@@ -11,11 +11,13 @@ The active migration system is now:
 
 Do NOT re-enable this file or call run_pending_migrations() from
 production code.  All future schema changes must be Alembic migrations.
-"""
-server, and any migrations that haven't run yet for that .db file run
-automatically, in order, exactly once.
 
-How to add a new migration:
+How this used to work, for historical reference: every migration ran
+once, tracked by a `schema_version` row in the `meta` table. On every
+startup of the server, any migrations that hadn't yet run for that
+.db file ran automatically, in order, exactly once.
+
+How a new migration used to get added:
   1. Write a function `def migrate_N(conn): ...` below the last one,
      where N is the next integer after the current highest.
   2. Add it to MIGRATIONS in order.
@@ -306,7 +308,7 @@ def run_pending_migrations(conn: sqlite3.Connection, verbose=True):
         except Exception:
             conn.rollback()
             print(f"[migrations] FAILED applying migration {version} -- database left at version {current}.")
-            print(f"[migrations] back up your .db file before retrying, and check the error above.")
+            print("[migrations] back up your .db file before retrying, and check the error above.")
             raise
     if verbose:
         if applied:

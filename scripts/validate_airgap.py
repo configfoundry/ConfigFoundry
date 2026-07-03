@@ -24,6 +24,12 @@ Checks performed:
      this is the one check that can't lie, since --no-index makes pip
      structurally unable to reach PyPI even if the sandbox running this
      script happens to have network access.
+  6. FUNCTIONAL: with that same throwaway virtualenv, actually import the
+     application (`from app import create_app`) and construct it. A
+     `pip install` can succeed while the app still fails to boot -- e.g.
+     a new import added to the code without adding the package to
+     requirements.txt. This is what catches that case before a release
+     bundle ships with a package silently missing.
 
 Usage:
     python3 scripts/validate_airgap.py
@@ -207,18 +213,45 @@ def check_offline_pip_install(r: Result) -> None:
     with tempfile.TemporaryDirectory() as tmp:
         venv_dir = Path(tmp) / "venv"
         venv.EnvBuilder(with_pip=True).create(venv_dir)
+        python = venv_dir / "bin" / "python3"
         pip = venv_dir / "bin" / "pip"
         if not pip.exists():
-            pip = venv_dir / "Scripts" / "pip.exe"  # Windows
+            python = venv_dir / "Scripts" / "python.exe"  # Windows
+            pip = venv_dir / "Scripts" / "pip.exe"
         proc = subprocess.run(
             [str(pip), "install", "--no-index", "--find-links", str(vendor),
              "-r", str(REPO_ROOT / "requirements.txt")],
             capture_output=True, text=True,
         )
-        if proc.returncode == 0:
-            r.ok("pip install --no-index --find-links vendor/python succeeded")
-        else:
+        if proc.returncode != 0:
             r.fail("pip install --no-index failed:\n" + proc.stdout[-2000:] + proc.stderr[-2000:])
+            return
+        r.ok("pip install --no-index --find-links vendor/python succeeded")
+        check_import_validation(r, python)
+
+
+def check_import_validation(r: Result, python: Path) -> None:
+    print("\n== 6. FUNCTIONAL: application imports and boots ==")
+    probe = (
+        "from app import create_app\n"
+        "from core.storage.config import AppConfig\n"
+        "import tempfile, os\n"
+        "db_path = os.path.join(tempfile.mkdtemp(), 'airgap-import-check.db')\n"
+        "app = create_app(config=AppConfig.for_sqlite(db_path))\n"
+        "assert app is not None\n"
+    )
+    proc = subprocess.run(
+        [str(python), "-c", probe],
+        capture_output=True, text=True, cwd=str(REPO_ROOT),
+    )
+    if proc.returncode == 0:
+        r.ok("application imports and constructs successfully from the offline install")
+    else:
+        r.fail(
+            "application failed to import/boot from the offline install -- a required "
+            "runtime package is likely missing from requirements.txt / vendor/python/:\n"
+            + proc.stdout[-2000:] + proc.stderr[-2000:]
+        )
 
 
 def main() -> int:

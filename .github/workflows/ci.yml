@@ -15,6 +15,29 @@ on:
     branches: [main]
 
 jobs:
+  repo-hygiene:
+    name: Repository hygiene (size guard)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail if any tracked file exceeds 40 MB
+        # GitHub hard-blocks pushes at 100 MB and warns at 50 MB per file.
+        # 40 MB gives headroom while still catching an accidental large
+        # binary (a stray venv, a full node_modules tarball, a database
+        # dump) long before it becomes a repository-size problem history
+        # can't easily undo. See docs/development.md and .gitignore.
+        run: |
+          LIMIT_BYTES=$((40 * 1024 * 1024))
+          FAILED=0
+          while IFS= read -r -d '' f; do
+            size=$(stat -c%s "$f")
+            if [ "$size" -gt "$LIMIT_BYTES" ]; then
+              echo "::error file=$f::tracked file is $((size / 1024 / 1024)) MB, over the 40 MB repository limit. Do not commit large binaries -- see docs/airgap.md#repository-vs-release-artifact for where generated/vendored artifacts belong instead."
+              FAILED=1
+            fi
+          done < <(git ls-files -z)
+          exit $FAILED
+
   backend-tests:
     name: Backend tests
     runs-on: ubuntu-latest
@@ -120,6 +143,23 @@ jobs:
             ConfigFoundry-Offline-*.zip
             ConfigFoundry-Offline-*.zip.sha256
           retention-days: 30
+      - name: Extract this version's release notes from CHANGELOG.md
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            /^## \[/ {
+              if (found) exit
+              if ($0 ~ ("\\[" ver "\\]")) { found=1; next }
+              next
+            }
+            found && /^\[.*\]: http/ { exit }
+            found { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "::warning::No CHANGELOG.md section found for [$VERSION] -- falling back to a generic note. Add a \"## [$VERSION]\" section to CHANGELOG.md before tagging."
+            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details." > RELEASE_NOTES.md
+          fi
       - name: Publish to GitHub Releases (tag pushes only)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -127,7 +167,7 @@ jobs:
           files: |
             ConfigFoundry-Offline-*.zip
             ConfigFoundry-Offline-*.zip.sha256
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.md
 
   offline-install-smoke-test:
     name: Offline install smoke test (the real proof)
@@ -161,53 +201,6 @@ jobs:
           sudo iptables -A OUTPUT -p tcp --dport 443 -d registry.npmjs.org -j REJECT || true
           python3 scripts/validate_airgap.py
           ./install_offline.sh
-      - name: Debug offline bundle
-        working-directory: ${{ env.BUNDLE_DIR }}
-        run: |
-          echo "=============================="
-          echo "Current directory"
-          pwd
-
-          echo
-          echo "=============================="
-          echo "Root contents"
-          ls -la
-
-          echo
-          echo "=============================="
-          echo "Top-level directories"
-          find . -maxdepth 1 -type d | sort
-
-          echo
-          echo "=============================="
-          echo "schemas"
-          ls -la schemas || true
-
-          echo
-          echo "=============================="
-          echo "formats"
-          ls -la formats || true
-
-          echo
-          echo "=============================="
-          echo "Python path"
-          .venv/bin/python3 - <<'PY'
-          import os
-          import sys
-
-          print("cwd:", os.getcwd())
-          print()
-
-          print("sys.path:")
-          for p in sys.path:
-              print(" ", p)
-
-          print()
-
-          print("exists schemas:", os.path.isdir("schemas"))
-          print("exists formats:", os.path.isdir("formats"))
-          print("exists app.py:", os.path.exists("app.py"))
-          PY
       - name: Verify the app actually boots
         working-directory: ${{ env.BUNDLE_DIR }}
         run: |

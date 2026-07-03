@@ -154,7 +154,7 @@ class SQLAlchemyRoleRepository(IRoleRepository):
         with Session(self._engine) as session:
             rows = session.execute(
                 text(
-                    f"SELECT r.id, r.org_id, r.name, r.description, r.is_system, r.created_at "
+                    "SELECT r.id, r.org_id, r.name, r.description, r.is_system, r.created_at "
                     "FROM roles r JOIN user_roles ur ON ur.role_id = r.id "
                     "WHERE ur.user_id = :user_id AND ur.org_id = :org_id"
                 ),

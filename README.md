@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/shivamsancc/ConfigFoundry"><img alt="repo" src="https://img.shields.io/badge/github-shivamsancc%2FConfigFoundry-181717?logo=github"></a>
-  <img alt="status" src="https://img.shields.io/badge/status-active-brightgreen">
+  <img alt="status" src="https://img.shields.io/badge/status-enterprise%20preview%20(v0.5)-brightgreen">
   <img alt="python" src="https://img.shields.io/badge/python-3.10%2B-blue">
   <img alt="airgap" src="https://img.shields.io/badge/deployment-air--gap%20capable-informational">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-lightgrey">
@@ -26,7 +26,7 @@
 
 ---
 
-## Why this exists
+## What is ConfigFoundry
 
 Network teams often track device inventory in a spreadsheet and hand-roll
 monitoring config from it. ConfigFoundry replaces that with a small shared
@@ -43,12 +43,6 @@ hand — plus, if your environment needs it, a full enterprise security layer
 works with zero internet access. See [FAQ](docs/faq.md) for the questions
 people actually ask, and [Features](docs/features.md) for what "isn't a CMDB"
 and "single shared database" mean in practice before you adopt it.
-
-## Screenshots
-
-Not included in this revision yet — tracked in [Roadmap](docs/roadmap.md).
-Run it yourself (five minutes, see Quick Start below) rather than relying on
-descriptions here.
 
 ## Features
 
@@ -74,28 +68,16 @@ descriptions here.
 Full feature reference, including what ConfigFoundry deliberately isn't:
 [docs/features.md](docs/features.md).
 
-## Architecture overview
+## Screenshots
 
-```
-Browser → Next.js static export (same origin) → FastAPI (app.py)
-            → middleware (access policy, rate limit, security headers)
-            → routes → service layer → repository layer
-            → StorageProvider (SQLite / PostgreSQL / MySQL / SQL Server)
-```
-
-Layered, with each layer depending only on the one below it through an
-explicit interface — repositories never import a database driver directly,
-services never contain HTTP code, routes never contain business logic. Full
-diagram, request lifecycle, and module layout:
-[docs/architecture.md](docs/architecture.md).
+Not included in this revision yet — tracked in [Roadmap](docs/roadmap.md).
+Run it yourself (five minutes, see Quick Start below) rather than relying on
+descriptions here.
 
 ## Quick start
 
 The git repository is source only — no prebuilt frontend, no vendored
-npm packages — which is what keeps `git clone` lightweight. Two ways to
-run it, depending on what you have:
-
-**From source (needs Python; Node only if you want the current UI):**
+npm packages — which is what keeps `git clone` lightweight.
 
 ```bash
 git clone https://github.com/shivamsancc/ConfigFoundry.git
@@ -118,7 +100,14 @@ Either way it opens `http://localhost:8420/` automatically, creates
 credentials to the console on first startup. Full walkthrough:
 [docs/getting-started.md](docs/getting-started.md).
 
-**From a release bundle (no Node, no internet, anywhere):**
+## Offline installation
+
+No internet access on the target machine? Download
+`ConfigFoundry-Offline-vX.Y.Z.zip` from GitHub Releases (or build one
+yourself with `./scripts/build_release_bundle.sh`) — it ships a
+prebuilt frontend and every dependency vendored, so it installs and
+runs with **zero internet access**: no PyPI, npm registry, GitHub, or
+CDN of any kind.
 
 ```bash
 unzip ConfigFoundry-Offline-vX.Y.Z.zip && cd ConfigFoundry-Offline-vX.Y.Z
@@ -126,12 +115,10 @@ unzip ConfigFoundry-Offline-vX.Y.Z.zip && cd ConfigFoundry-Offline-vX.Y.Z
 ./run_offline.sh
 ```
 
-This is the zero-internet, zero-Node path — the release bundle ships a
-prebuilt frontend and a full offline dependency vendor bundle that the
-git repository itself intentionally doesn't carry. Get one from GitHub
-Releases or build it yourself (`./scripts/build_release_bundle.sh`).
-See [Air-Gap Deployment](docs/airgap.md) for the full explanation and
-[Installation](docs/installation.md) for every method side by side.
+This is verified automatically by `scripts/validate_airgap.py` and a CI
+job that firewalls the runner off from PyPI/npm before proving the
+install still works. Full explanation: [docs/airgap.md](docs/airgap.md),
+every installation method side by side: [docs/installation.md](docs/installation.md).
 
 ## Documentation
 
@@ -156,15 +143,20 @@ path is reserved for FastAPI's Swagger UI, below.) Highlights:
 Interactive API docs (Swagger UI / ReDoc, self-hosted, no CDN) are always
 available at `http://localhost:8420/docs` and `/redoc` on a running instance.
 
-## Air-gap deployment
+## Architecture
 
-Every dependency is vendored and pinned; every static asset is self-hosted.
-`install_offline.sh`/`.ps1` install and run ConfigFoundry with **zero
-internet access** — no PyPI, npm registry, GitHub, or CDN of any kind —
-verified automatically by `scripts/validate_airgap.py` and a CI job that
-firewalls the runner off from PyPI before proving the install still works.
-Release bundles (`ConfigFoundry-Offline-vX.Y.Z.zip`) ship everything needed
-in one archive. Full explanation: [docs/airgap.md](docs/airgap.md).
+```
+Browser → Next.js static export (same origin) → FastAPI (app.py)
+            → middleware (access policy, rate limit, security headers)
+            → routes → service layer → repository layer
+            → StorageProvider (SQLite / PostgreSQL / MySQL / SQL Server)
+```
+
+Layered, with each layer depending only on the one below it through an
+explicit interface — repositories never import a database driver directly,
+services never contain HTTP code, routes never contain business logic. Full
+diagram, request lifecycle, and module layout:
+[docs/architecture.md](docs/architecture.md).
 
 ## Enterprise features
 
@@ -178,10 +170,11 @@ Content-Security-Policy with no CDN dependency anywhere. See
 
 ## Roadmap
 
-Highest priority right now: porting the Network Tree diagram to the
-current frontend (see Features above), an Inventory Validation Engine, and
-operational observability (`/health`, `/metrics`). Full list, plus what's
-deliberately out of scope: [docs/roadmap.md](docs/roadmap.md).
+Current release (v0.5.x) is an **Enterprise Preview** — focused on bug
+fixes, stability, documentation, and CI, not new features. See
+[CHANGELOG.md](CHANGELOG.md) for what shipped and
+[docs/roadmap.md](docs/roadmap.md) for the full plan toward v1.0,
+including the versioning strategy and what's deliberately out of scope.
 
 ## Contributing
 
@@ -192,7 +185,7 @@ infrastructure over almost anything else — a PR that trades that away for
 convenience (a new dependency, an assumption the internet is reachable)
 should expect pushback on the tradeoff, not the code itself. Full guide,
 including a few codebase-specific gotchas worth knowing before you dive in:
-[docs/contributing.md](docs/contributing.md).
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

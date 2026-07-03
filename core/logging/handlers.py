@@ -39,7 +39,6 @@ import logging
 import logging.handlers
 import os
 import sys
-from typing import Optional
 
 from core.logging.formatters import (
     ConfigFoundryFormatter,

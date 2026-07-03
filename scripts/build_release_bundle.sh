@@ -25,8 +25,10 @@
 #      vendor/npm/, docs/, every install/run/upgrade script, the air-gap
 #      validator, LICENSE, and a VERSION file -- explicitly excluding
 #      dev-only cruft (.git, __pycache__, .venv, node_modules, .next).
-#   6. Run scripts/validate_airgap.py against the STAGED copy. A bundle
-#      that would fail air-gap validation is never produced.
+#   6. Run the FULL scripts/validate_airgap.py (including the functional
+#      offline-install + import-validation checks) against the STAGED
+#      copy. A bundle that would fail air-gap validation, or that is
+#      missing a required runtime package, is never produced.
 #   7. Zip the staged directory and write a top-level CHECKSUMS.sha256
 #      covering every file inside, plus a standalone .sha256 of the zip
 #      itself for post-transfer integrity verification.
@@ -200,15 +202,25 @@ ok "Bundle staged at $(basename "$STAGE_DIR")/ ($(du -sh "$STAGE_DIR" | cut -f1)
 
 # ---------------------------------------------------------------------
 # 6. Validate the staged bundle before packaging it
+#
+# This runs the FULL validation, including the functional checks (a
+# real `pip install --no-index` into a throwaway venv, then an actual
+# `from app import create_app` import/boot against that venv) -- not
+# `--skip-functional`. A release bundle is exactly the artifact where
+# "every required runtime package is actually present" needs to be
+# proven, not assumed; catching a missing dependency here, before the
+# zip is written, is the whole point of this step. It costs a bit more
+# time than the static-only checks, but every wheel is already local
+# (no network round-trip), so it stays fast.
 # ---------------------------------------------------------------------
 if [[ "$SKIP_VALIDATION" -eq 1 ]]; then
   warn "Skipping air-gap validation (--skip-validation). Do not publish an unvalidated bundle."
 else
-  info "Running air-gap validation against the staged bundle..."
-  if ! (cd "$STAGE_DIR" && python3 scripts/validate_airgap.py --skip-functional); then
-    fail "Staged bundle FAILED air-gap validation. Not producing a zip. See output above."
+  info "Running full air-gap validation (incl. offline install + import check) against the staged bundle..."
+  if ! (cd "$STAGE_DIR" && python3 scripts/validate_airgap.py); then
+    fail "Staged bundle FAILED air-gap validation -- a required runtime package may be missing. Not producing a zip. See output above."
   fi
-  ok "Staged bundle passes air-gap validation"
+  ok "Staged bundle passes full air-gap validation, including the import/boot check"
 fi
 
 # ---------------------------------------------------------------------

@@ -1,29 +1,51 @@
-# Python bytecode cache
+# Python bytecode / tooling caches
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
 
 # Runtime databases — ignore all .db files but keep the db/ directory
 # and its README tracked so the directory structure is documented in git.
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
 !db/
 !db/README.md
 
-# macOS metadata
+# macOS / editor / IDE artifacts
 .DS_Store
-
-# Editor / IDE artifacts
 .vscode/
 .idea/
-
-# Swap files
 *.swp
 *.swo
 
 # Virtual environment created by install_offline.sh / manual `python3 -m venv .venv`
 .venv/
+venv/
+
+# Frontend build/type-check caches (regenerated on every build; see
+# frontend/.gitignore for the full frontend-specific rules)
+*.tsbuildinfo
+.eslintcache
+
+# Generic temp/log output — nothing ConfigFoundry writes here on purpose
+*.log
+*.tmp
+*.bak
+*.orig
 
 # Offline release bundles built by scripts/build_release_bundle.sh --
-# regenerate from source, don't commit the archive itself.
+# regenerate from source, don't commit the archive itself. A built
+# bundle is tens of MB; this rule exists specifically so one can never
+# be committed by accident and push the repository back toward the
+# multi-hundred-MB size this cleanup pass fixed (see docs/airgap.md
+# and docs/release-process.md).
 ConfigFoundry-Offline-*.zip
 ConfigFoundry-Offline-*.zip.sha256
 

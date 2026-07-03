@@ -28,7 +28,7 @@ Example shutdown output
 from __future__ import annotations
 
 import sys
-from typing import Any, Optional, Union
+from typing import Any
 
 from core.logging.factory import get_logger
 

@@ -66,7 +66,7 @@ import logging
 import os
 from typing import Optional
 
-from sqlalchemy import Engine, inspect, text
+from sqlalchemy import Engine, inspect
 
 _logger = logging.getLogger(__name__)
 

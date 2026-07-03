@@ -5,7 +5,7 @@ should 422 before touching AuthService at all."""
 from __future__ import annotations
 
 import re
-from typing import Annotated, Any, Optional
+from typing import Annotated, Optional
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 

@@ -11,7 +11,7 @@ POST   /api/devices/validate-import  body: {devices, mode}   → {findings}
 """
 from typing import Any
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from api.dependencies import get_container

@@ -81,7 +81,7 @@ configurable — see [Configuration](./configuration.md).
 **Every restart logs everyone out**
 `CONFIGFOUNDRY_AUTH_JWT_SECRET` isn't set, so a new random one is
 generated on every startup, invalidating all previously issued tokens.
-Set it explicitly — see [Configuration § Set this in production](./configuration.md#authentication--security-configfoundry_auth_).
+Set it explicitly — see [Configuration § Set this in production](./configuration.md#authentication-security-configfoundry_auth_).
 
 ## Database
 

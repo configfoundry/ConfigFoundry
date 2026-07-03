@@ -13,7 +13,7 @@ This is the documentation home. Pick where you're starting from:
 ## New to ConfigFoundry
 
 - **[Getting Started](./getting-started.md)** — the fastest path from zero to a running instance.
-- **[Installation](./installation.md)** — every installation method in detail (source, offline bundle, Docker-adjacent notes).
+- **[Installation](./installation.md)** — every installation method in detail (release bundle, source, offline-from-source).
 - **[Features](./features.md)** — the full product feature reference: inventory management, dynamic tags, the Network Tree, dashboard.
 - **[FAQ](./faq.md)** — quick answers to the questions people actually ask.
 
@@ -27,10 +27,11 @@ This is the documentation home. Pick where you're starting from:
 ## Building on top of ConfigFoundry
 
 - **[Architecture](./architecture.md)** — how the pieces fit together, with diagrams.
-- **[API Reference](./api.md)** — every REST endpoint, request/response shapes, auth requirements.
+- **[API Reference](./api.md)** and **[API Versioning](./api-versioning.md)** — every REST endpoint, request/response shapes, auth requirements, and how `/api/v2/` would be added without breaking `/api/v1/`.
 - **[Authentication](./authentication.md)**, **[Authorization](./authorization.md)**, **[RBAC](./rbac.md)** — the security layer in depth.
 - **[Storage](./storage.md)** and **[Migrations](./migrations.md)** — the database abstraction and schema evolution.
 - **[Logging](./logging.md)** — the structured logging framework.
+- **[SOC 2 Compliance Mapping](./compliance-soc2.md)** — how the auth/RBAC/audit layer maps to SOC 2 controls.
 
 ## Operating ConfigFoundry
 

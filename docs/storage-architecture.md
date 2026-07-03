@@ -394,9 +394,7 @@ This keeps repositories stateless (no held connections between calls), makes the
 
 ### High priority
 
-- **Implement PostgreSQL/MySQL/SQL Server providers.** The scaffolds are fully wired — only `initialize()`, `get_engine()`, and `get_session_factory()` need real bodies. Add `psycopg2`, `pymysql`, and `pyodbc` to `requirements.txt`, and adapt `SQLiteProvider._run_migrations()` to use SQLAlchemy DDL or Alembic instead of raw `sqlite3` commands.
-
-- **Migrate to Alembic.** The current migration system uses raw `sqlite3` statements in `core/migrations.py`. Alembic would make schema evolution provider-agnostic and give a proper revision history.
+- **Implement PostgreSQL/MySQL/SQL Server providers.** The scaffolds are fully wired — only `initialize()`, `get_engine()`, and `get_session_factory()` need real bodies. Add `psycopg2`, `pymysql`, and `pyodbc` to `requirements.txt`. Schema migration is already provider-agnostic via Alembic (see below), so this doesn't block on migration tooling.
 
 - **Async support.** FastAPI + SQLAlchemy 2.x support `AsyncEngine` and `AsyncSession`. Adding an `AsyncStorageProvider` subtype (or a flag on the existing ABC) would allow fully async request handling.
 
@@ -409,8 +407,6 @@ This keeps repositories stateless (no held connections between calls), makes the
 - **Config hot-reload.** Currently the provider is created once at startup. Introducing a reload endpoint (or SIGHUP handler) that recreates the container without restarting the process would help in long-lived deployments.
 
 ### Low priority
-
-- **Remove `core/db.py`.** This file was the pre-abstraction entry point for `init_db()`. It is no longer called by any production code (SQLiteProvider owns that logic). It can be deleted once any remaining direct imports are confirmed absent.
 
 - **Drop the backward-compat shim functions** in `core/storage/__init__.py` (`list_devices()`, `upsert_device()`, etc.) once the handler tests are updated to call the container directly.
 

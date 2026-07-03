@@ -1,20 +1,31 @@
 # ConfigFoundry — developer convenience targets
 # Requires: python3, node, npm
 
-.PHONY: help dev-backend dev-frontend dev install-frontend build serve clean
+.PHONY: help install install-backend install-frontend dev dev-backend dev-frontend \
+        build serve test typecheck lint clean
 
 help:
 	@echo ""
+	@echo "  make install            Install both backend and frontend dependencies"
+	@echo "  make install-backend    pip install -r requirements.txt -r requirements-dev.txt"
 	@echo "  make install-frontend   Install Node dependencies (frontend/)"
 	@echo "  make dev                Run backend + frontend dev servers in parallel"
 	@echo "  make dev-backend        Run FastAPI on :8420 only"
 	@echo "  make dev-frontend       Run Next.js dev server on :3001 only"
 	@echo "  make build              Build Next.js static output → frontend/out/"
 	@echo "  make serve              Build frontend + start FastAPI (single-port production)"
+	@echo "  make test               Run the backend test suite (pytest)"
+	@echo "  make typecheck          Typecheck the frontend (tsc --noEmit)"
+	@echo "  make lint               Lint the frontend (next lint)"
 	@echo "  make clean              Remove Next.js build artefacts"
 	@echo ""
 
 # ── install ──────────────────────────────────────────────────────────────────
+
+install: install-backend install-frontend
+
+install-backend:
+	pip install -r requirements.txt -r requirements-dev.txt
 
 install-frontend:
 	cd frontend && npm install
@@ -66,6 +77,20 @@ build:
 # Build the static frontend, then start FastAPI — everything on one port.
 serve: build
 	python3 server.py
+
+# ── quality ──────────────────────────────────────────────────────────────────
+
+# Same command CI runs (backend-tests job) — see docs/development.md.
+test:
+	python3 -m pytest -q
+
+typecheck:
+	cd frontend && npx tsc --noEmit
+
+# next lint (built into Next.js, no extra dependency) — no Python
+# equivalent is configured on purpose; see docs/development.md#code-style.
+lint:
+	cd frontend && npm run lint
 
 # ── clean ────────────────────────────────────────────────────────────────────
 

@@ -15,7 +15,6 @@ from core.repositories.interfaces import (
     IBandwidthRepository,
     ISubnetRepository,
     ITagRepository,
-    IAuditRepository,
 )
 from core.services.device_service import DeviceService
 from core.services.bandwidth_service import BandwidthService
