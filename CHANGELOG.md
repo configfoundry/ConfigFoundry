@@ -99,3 +99,4 @@ path are stable and tested, but this is not yet a v1.0 commitment (see
 
 [Unreleased]: https://github.com/configfoundry/ConfigFoundry/compare/v0.5.0...HEAD
 [0.5.0]: https://github.com/configfoundry/ConfigFoundry/releases/tag/v0.5.0
+tagging the version
