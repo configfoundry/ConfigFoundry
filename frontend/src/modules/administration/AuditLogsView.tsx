@@ -30,9 +30,10 @@ import TimelineDot from '@mui/lab/TimelineDot'
 import TimelineOppositeContent from '@mui/lab/TimelineOppositeContent'
 import Typography from '@mui/material/Typography'
 import { api } from '@/lib/api'
-import type { AuditEntry } from '@/lib/types'
 import { DataGridToolbar } from '@/components/tables/DataGridToolbar'
 import { EmptyState } from '@/components/common/EmptyState'
+import { useAuth } from '@/providers/AuthProvider'
+import { formatActor, formatAction, formatDetails as detailsToText } from '@/lib/auditFormat'
 
 function fmtTs(ts: string | null | undefined) {
   if (!ts) return '—'
@@ -43,19 +44,10 @@ function fmtTs(ts: string | null | undefined) {
   }
 }
 
-function detailsToText(details: AuditEntry['details']) {
-  if (!details) return ''
-  if (typeof details === 'string') return details
-  try {
-    return JSON.stringify(details)
-  } catch {
-    return ''
-  }
-}
-
 export function AuditLogsView() {
   const [search, setSearch] = useState('')
   const [view, setView] = useState<'table' | 'timeline'>('table')
+  const { user } = useAuth()
 
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['audit', 200], queryFn: () => api.getAudit(200) })
 
@@ -77,8 +69,8 @@ export function AuditLogsView() {
 
   const columns: GridColDef<(typeof rows)[number]>[] = [
     { field: 'ts', headerName: 'Time', flex: 1, minWidth: 170, valueGetter: (p) => fmtTs(p.row.ts) },
-    { field: 'actor', headerName: 'Actor', flex: 1, minWidth: 140, valueGetter: (p) => p.row.actor ?? '—' },
-    { field: 'action', headerName: 'Action', flex: 1, minWidth: 160 },
+    { field: 'actor', headerName: 'Actor', flex: 1, minWidth: 140, valueGetter: (p) => formatActor(p.row.actor, user?.id) },
+    { field: 'action', headerName: 'Action', flex: 1, minWidth: 160, valueGetter: (p) => formatAction(p.row.action) },
     { field: 'entity', headerName: 'Entity', flex: 1, minWidth: 140, valueGetter: (p) => p.row.entity ?? '—' },
     { field: 'details', headerName: 'Details', flex: 1.5, minWidth: 200, sortable: false, valueGetter: (p) => detailsToText(p.row.details) },
   ]
@@ -138,11 +130,11 @@ export function AuditLogsView() {
                   </TimelineSeparator>
                   <TimelineContent sx={{ pb: 2.5 }}>
                     <Typography variant="body2">
-                      <strong>{e.actor ?? 'system'}</strong> {e.action}
+                      <strong>{formatActor(e.actor, user?.id)}</strong> {formatAction(e.action)}
                       {e.entity && <> · {e.entity}</>}
                     </Typography>
                     {detailsToText(e.details) && (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontFamily: 'monospace' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                         {detailsToText(e.details)}
                       </Typography>
                     )}

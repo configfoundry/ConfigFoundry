@@ -41,7 +41,7 @@ export function FindingsTimeline({ findings, onSelect }: FindingsTimelineProps) 
                 {(f.device || f.deviceId) && (
                   <Typography variant="caption" color="text.secondary">
                     Device:{' '}
-                    <Link href="/inventory" style={{ color: 'inherit', textDecoration: 'underline' }}>
+                    <Link href="/inventory/devices" style={{ color: 'inherit', textDecoration: 'underline' }}>
                       {f.device ?? f.deviceId}
                     </Link>
                   </Typography>

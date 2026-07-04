@@ -90,6 +90,7 @@ class TestCreateOrUpdate(unittest.TestCase):
         """A device with a pre-existing id should produce an update_device entry."""
         svc, repo, audit = _make_service()
         device = _device(device_id="existing-id")
+        repo.get.return_value = {"id": "existing-id", "tags": {}}
         repo.upsert.return_value = device
         svc.create_or_update(device, actor="bob")
         action = audit.log.call_args[0][1]
@@ -125,6 +126,154 @@ class TestCreateOrUpdate(unittest.TestCase):
         repo.upsert.return_value = {**device, "id": "z"}
         svc.create_or_update(device, actor=None)
         audit.log.assert_called_once()
+
+
+class TestTagPreservationOnUpdate(unittest.TestCase):
+    """DeviceService.create_or_update must never let an edit silently wipe
+    dynamic tag values the caller's payload doesn't mention (see the
+    docstring on create_or_update for the full rule). All repository
+    dependencies are mocked -- these tests only exercise the merge logic
+    itself, not real persistence."""
+
+    def test_create_with_no_tags_is_unaffected(self):
+        """Requirement 1: create device with no tags -- repo.get must never
+        be consulted on create (there is nothing to merge from)."""
+        svc, repo, audit = _make_service()
+        device = _device()  # no id -> create
+        repo.upsert.return_value = {**device, "id": "new-id"}
+        svc.create_or_update(device, actor="alice")
+        repo.get.assert_not_called()
+        self.assertNotIn("tags", repo.upsert.call_args[0][0])
+
+    def test_create_with_tags_passes_through_unchanged(self):
+        """Requirement 2: create device with tags -- passed straight through,
+        no merge attempted (nothing exists yet to merge with)."""
+        svc, repo, audit = _make_service()
+        device = _device()
+        device["tags"] = {"tag-a": "Router"}
+        repo.upsert.return_value = {**device, "id": "new-id"}
+        svc.create_or_update(device, actor="alice")
+        repo.get.assert_not_called()
+        upserted = repo.upsert.call_args[0][0]
+        self.assertEqual(upserted["tags"], {"tag-a": "Router"})
+
+    def test_update_without_tags_preserves_existing_tags(self):
+        """Requirement 3: editing a device without sending `tags` at all
+        (e.g. via DeviceFormDrawer today) must leave existing tags intact."""
+        svc, repo, audit = _make_service()
+        repo.get.return_value = {"id": "existing-id", "tags": {"tag-a": "Router"}}
+        device = _device(device_id="existing-id")  # no "tags" key at all
+        repo.upsert.return_value = device
+        svc.create_or_update(device, actor="bob")
+        repo.get.assert_called_once_with("existing-id")
+        upserted = repo.upsert.call_args[0][0]
+        self.assertEqual(upserted["tags"], {"tag-a": "Router"})
+
+    def test_update_with_one_tag_merges_and_keeps_unrelated_tags(self):
+        """Requirement 4: an incoming tag overwrites only its own tag id;
+        other existing tags must be preserved untouched."""
+        svc, repo, audit = _make_service()
+        repo.get.return_value = {
+            "id": "existing-id",
+            "tags": {"tag-a": "Router", "tag-b": "us-east"},
+        }
+        device = _device(device_id="existing-id")
+        device["tags"] = {"tag-a": "Switch"}  # only updating tag-a
+        repo.upsert.return_value = device
+        svc.create_or_update(device, actor="bob")
+        upserted = repo.upsert.call_args[0][0]
+        self.assertEqual(upserted["tags"], {"tag-a": "Switch", "tag-b": "us-east"})
+
+    def test_update_with_explicit_empty_tags_clears_them(self):
+        """Requirement 5: an explicit `"tags": {}` is a deliberate clear, not
+        "no change" -- it must NOT fall back to preserving existing tags."""
+        svc, repo, audit = _make_service()
+        repo.get.return_value = {"id": "existing-id", "tags": {"tag-a": "Router"}}
+        device = _device(device_id="existing-id")
+        device["tags"] = {}
+        repo.upsert.return_value = device
+        svc.create_or_update(device, actor="bob")
+        upserted = repo.upsert.call_args[0][0]
+        self.assertEqual(upserted["tags"], {})
+
+    def test_update_incoming_tags_null_treated_as_clear(self):
+        """`"tags": null` (Python None, key present) is treated the same as
+        an explicit `{}` -- both mean "caller is stating there are no tags",
+        so both are a deliberate clear, not "unchanged"."""
+        svc, repo, audit = _make_service()
+        repo.get.return_value = {"id": "existing-id", "tags": {"tag-a": "Router"}}
+        device = _device(device_id="existing-id")
+        device["tags"] = None
+        repo.upsert.return_value = device
+        svc.create_or_update(device, actor="bob")
+        upserted = repo.upsert.call_args[0][0]
+        self.assertEqual(upserted["tags"], {})
+
+    def test_update_adds_brand_new_tag_id_alongside_existing(self):
+        """Requirement 2 (new tag ids): an incoming tag id that didn't exist
+        on the device before is added, and pre-existing tags are kept --
+        not just the "overwrite" case, but genuinely new keys too."""
+        svc, repo, audit = _make_service()
+        repo.get.return_value = {"id": "existing-id", "tags": {"tag-a": "Router"}}
+        device = _device(device_id="existing-id")
+        device["tags"] = {"tag-z": "brand-new-value"}
+        repo.upsert.return_value = device
+        svc.create_or_update(device, actor="bob")
+        upserted = repo.upsert.call_args[0][0]
+        self.assertEqual(upserted["tags"], {"tag-a": "Router", "tag-z": "brand-new-value"})
+
+    def test_update_existing_device_with_no_tags_key_at_all(self):
+        """Existing device predates the tags feature entirely (no "tags" key
+        in its stored record, not even {}). Editing it without sending tags
+        must not crash and should simply result in an empty tags dict."""
+        svc, repo, audit = _make_service()
+        repo.get.return_value = {"id": "existing-id"}  # no "tags" key
+        device = _device(device_id="existing-id")
+        repo.upsert.return_value = device
+        svc.create_or_update(device, actor="bob")
+        upserted = repo.upsert.call_args[0][0]
+        self.assertEqual(upserted["tags"], {})
+
+    def test_preserved_tags_are_not_aliased_to_repo_object(self):
+        """Check 3 (code review): preserving existing tags must copy them,
+        not hand back the same dict object the repository returned --
+        otherwise a later in-place mutation of the upserted device's tags
+        would silently corrupt whatever object graph the repository (or a
+        caller holding a reference to it) still has."""
+        svc, repo, audit = _make_service()
+        original_tags_obj = {"tag-a": "Router"}
+        repo.get.return_value = {"id": "existing-id", "tags": original_tags_obj}
+        device = _device(device_id="existing-id")  # no "tags" key -> preserve
+        repo.upsert.return_value = device
+        svc.create_or_update(device, actor="bob")
+        upserted = repo.upsert.call_args[0][0]
+        self.assertIsNot(upserted["tags"], original_tags_obj)
+        # Mutating the result must not affect the object the mock "repository" holds.
+        upserted["tags"]["tag-a"] = "MUTATED"
+        self.assertEqual(original_tags_obj["tag-a"], "Router")
+
+    def test_create_behavior_unchanged(self):
+        """Requirement 6: create path produces the exact same upsert call as
+        before this change -- no tags key is injected when the caller didn't
+        supply one."""
+        svc, repo, audit = _make_service()
+        device = _device()
+        repo.upsert.return_value = {**device, "id": "new-id"}
+        svc.create_or_update(device, actor="alice")
+        repo.upsert.assert_called_once_with(device)
+
+    def test_update_when_existing_record_not_found_does_not_crash(self):
+        """Defensive edge case: device carries an id but the repository has
+        no matching record (e.g. stale reference). There's nothing to merge
+        from, so the incoming payload is passed through as given rather than
+        raising."""
+        svc, repo, audit = _make_service()
+        repo.get.return_value = None
+        device = _device(device_id="missing-id")
+        repo.upsert.return_value = device
+        svc.create_or_update(device, actor="bob")
+        repo.get.assert_called_once_with("missing-id")
+        repo.upsert.assert_called_once_with(device)
 
 
 class TestDelete(unittest.TestCase):

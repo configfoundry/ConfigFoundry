@@ -15,6 +15,7 @@ import {
 } from '@mui/x-data-grid'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Stack from '@mui/material/Stack'
 import Skeleton from '@mui/material/Skeleton'
 import Alert from '@mui/material/Alert'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
@@ -122,14 +123,39 @@ export function SubnetsView() {
 
   if (subnets.length === 0 && !search) {
     return (
-      <EmptyState
-        title="No subnets yet"
-        action={
-          <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={() => setEditSubnet('new')}>
-            Add Subnet
-          </Button>
-        }
-      />
+      <>
+        <EmptyState
+          title="No subnets yet"
+          sub="Add one manually or import a spreadsheet to get started."
+          action={
+            <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap" useFlexGap>
+              <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={() => setEditSubnet('new')}>
+                Add Subnet
+              </Button>
+              <Button variant="outlined" startIcon={<FileUploadOutlinedIcon />} onClick={() => setImportOpen(true)}>
+                Import from Excel
+              </Button>
+            </Stack>
+          }
+        />
+
+        {editSubnet !== null && (
+          <SubnetFormDrawer
+            open
+            subnet={typeof editSubnet === 'string' ? null : editSubnet}
+            onClose={() => setEditSubnet(null)}
+            onSave={(s) => saveMut.mutate(s)}
+            saving={saveMut.isPending}
+          />
+        )}
+
+        <ImportDialog
+          open={importOpen}
+          label="Subnets"
+          onClose={() => setImportOpen(false)}
+          onImport={(rows, mode) => importMut.mutate({ rows, mode })}
+        />
+      </>
     )
   }
 

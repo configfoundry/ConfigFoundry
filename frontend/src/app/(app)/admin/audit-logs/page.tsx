@@ -1,14 +1,13 @@
-import { AdminTabs } from '@/modules/administration/AdminTabs'
-import { AuditLogsView } from '@/modules/administration/AuditLogsView'
+'use client'
 
-// NEW route (/admin/audit-logs) -- see AuditLogsView.tsx for why this is
-// considered in-scope (existing, already-used GET /api/v1/audit endpoint;
-// no new backend code).
-export default function AuditLogsAdminPage() {
-  return (
-    <>
-      <AdminTabs />
-      <AuditLogsView />
-    </>
-  )
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { LoadingRow } from '@/components/ui/Spinner'
+
+// Moved to /administration/audit-logs -- see /admin/users/page.tsx for why
+// this is a client-side redirect rather than a config-level one.
+export default function AdminAuditLogsRedirect() {
+  const router = useRouter()
+  useEffect(() => { router.replace('/administration/audit-logs') }, [router])
+  return <LoadingRow />
 }

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import MuiBreadcrumbs from '@mui/material/Breadcrumbs'
 import Typography from '@mui/material/Typography'
 import NavigateNextIcon from '@mui/icons-material/NavigateNext'
-import { PAGE_TITLES } from '@/layouts/navConfig'
+import { PAGE_TITLES } from '@/navigation/vertical'
 
 /** Derives breadcrumbs from the current path + the existing PAGE_TITLES map. No routing changes. */
 export function Breadcrumbs() {

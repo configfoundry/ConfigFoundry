@@ -42,7 +42,7 @@ export function FindingDetailDialog({ finding, onClose }: FindingDetailDialogPro
         {(finding.device || finding.deviceId) && (
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
             Device:{' '}
-            <Link href="/inventory" style={{ color: 'inherit', textDecoration: 'underline' }}>
+            <Link href="/inventory/devices" style={{ color: 'inherit', textDecoration: 'underline' }}>
               {finding.device ?? finding.deviceId}
             </Link>
             {finding.field && ` · field: ${finding.field}`}

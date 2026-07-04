@@ -15,6 +15,13 @@ export interface Device {
   privProtocol?: string
   privKey?: string
   Remarks?: string
+  /** Dynamic tag values, keyed by TagDef id (NOT name) -- guaranteed present
+   *  (defaults to {}) by core/repositories/sqlite/base.py's row.setdefault
+   *  on every write. Matches core/logic.py's resolve_tags_for_record, which
+   *  reads record.get("tags", {}).get(tagDef.id). Previously only covered
+   *  by the catch-all index signature below; typed explicitly here since
+   *  the Device Details page reads it directly. */
+  tags?: Record<string, string>
   // Dynamic tag keys
   [key: string]: unknown
 }

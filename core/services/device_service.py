@@ -47,11 +47,65 @@ class DeviceService:
         ------
         ValueError
             When the supplied IP address string is not a valid IP.
+
+        Dynamic tag preservation
+        ------------------------
+        Editing a device must never destroy dynamic tag values ("tags",
+        keyed by TagDef id -- see core/logic.py's resolve_tags_for_record)
+        that the caller's edit form doesn't expose. DeviceFormDrawer, for
+        example, never submits a `tags` field at all, and the repository
+        layer replaces the entire stored JSON document on upsert (it does
+        not merge) -- without this step, every edit through that form would
+        silently wipe any tags already set on the device.
+
+        On update (device already has an id), this loads the existing
+        record and applies:
+          - `tags` key absent from the incoming payload -> preserve all
+            existing tags unchanged.
+          - `tags` key present and non-empty -> merge onto the existing
+            tags, with incoming values overwriting only matching tag ids;
+            any existing tag id not mentioned in the incoming payload is
+            kept.
+          - `tags` key present and explicitly `{}` -> treated as an
+            intentional clear (all tags removed), not "no change".
+
+        Create (no existing id) is entirely unaffected -- there is no prior
+        record to merge from, so whatever `tags` (if any) the caller
+        supplied is passed through as-is, exactly like before this change.
         """
         ip = (device.get("IP") or "").strip()
         if ip and not is_valid_ip(ip):
             raise ValueError(f"'{ip}' is not a valid IP address")
         is_create = not device.get("id")
+
+        # This lives here rather than in the repository because it's a
+        # business rule about what "editing a device" is allowed to mean
+        # (don't destroy data the edit didn't touch), not a persistence
+        # concern -- the repository stays a dumb, entity-agnostic JSON-blob
+        # store and doesn't need to know anything about tags specifically.
+        if not is_create:
+            existing = self._device_repo.get(device["id"])
+            if existing is not None:
+                existing_tags = existing.get("tags") or {}
+                if "tags" in device:
+                    incoming_tags = device.get("tags") or {}
+                    # Non-empty incoming tags merge onto the existing base
+                    # (incoming wins per tag id); an explicit {} ("clear all
+                    # tags") or null both collapse to {} here and must NOT
+                    # fall back to preserving existing tags.
+                    device["tags"] = {**existing_tags, **incoming_tags} if incoming_tags else {}
+                else:
+                    # `dict(...)` copy, not a bare reference: `existing` is
+                    # whatever the repository returned, and existing_tags
+                    # may be the exact same dict object nested inside it.
+                    # Assigning it directly into `device` would alias the
+                    # two, risking a later in-place mutation of
+                    # device["tags"] silently corrupting the repo's own
+                    # object graph (harmless with the current repos, which
+                    # always return fresh dicts from json.loads(), but not
+                    # something this service should rely on).
+                    device["tags"] = dict(existing_tags)
+
         saved = self._device_repo.upsert(device)
         self._audit_repo.log(
             actor,

@@ -1,12 +1,13 @@
-import { AdminTabs } from '@/modules/administration/AdminTabs'
-import { RolesView } from '@/modules/administration/RolesView'
+'use client'
 
-// Thin route file per the modules/<name> architecture. Route path unchanged (/admin/roles).
-export default function RolesAdminPage() {
-  return (
-    <>
-      <AdminTabs />
-      <RolesView />
-    </>
-  )
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { LoadingRow } from '@/components/ui/Spinner'
+
+// Moved to /administration/roles -- see /admin/users/page.tsx for why this
+// is a client-side redirect rather than a config-level one.
+export default function AdminRolesRedirect() {
+  const router = useRouter()
+  useEffect(() => { router.replace('/administration/roles') }, [router])
+  return <LoadingRow />
 }

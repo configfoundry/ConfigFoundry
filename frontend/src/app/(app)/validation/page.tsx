@@ -1,7 +1,14 @@
-import { ValidationView } from '@/modules/validation/ValidationView'
+'use client'
 
-// Thin route file per the modules/<name> architecture -- implementation
-// lives in modules/validation/. Route path unchanged (/validation).
-export default function ValidationPage() {
-  return <ValidationView />
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { LoadingRow } from '@/components/ui/Spinner'
+
+// /validation now redirects to /validation/run -- see /inventory/page.tsx
+// for why this is a client-side redirect (output: 'export' has no server
+// to run next.config.mjs redirects() on).
+export default function ValidationIndexRedirect() {
+  const router = useRouter()
+  useEffect(() => { router.replace('/validation/run') }, [router])
+  return <LoadingRow />
 }

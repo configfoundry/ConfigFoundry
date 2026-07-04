@@ -1,19 +1,17 @@
 'use client'
 
 /**
- * Add/Edit Device form. UI-only port of the old DeviceModal -- same form
- * fields, same isIcmp() gating of the SNMPv3 credential fields, same
- * onSave(Partial<Device>) contract.
+ * Add/Edit Device form. Same form fields, same isIcmp() gating of the
+ * SNMPv3 credential fields, same onSave(Partial<Device>) contract as
+ * before -- only restyled to use Vuexy's CustomTextField (which already
+ * covers both plain and `select` inputs) instead of plain MUI
+ * TextField/Select/FormControl/InputLabel. No logic changes.
  */
 import { useState } from 'react'
-import Stack from '@mui/material/Stack'
-import TextField from '@mui/material/TextField'
-import FormControl from '@mui/material/FormControl'
-import InputLabel from '@mui/material/InputLabel'
-import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
 import Grid from '@mui/material/Grid'
+import CustomTextField from '@/@core/components/mui/text-field'
 import type { Device } from '@/lib/types'
 import { FormDrawer } from '@/components/common/FormDrawer'
 
@@ -72,56 +70,54 @@ export function DeviceFormDrawer({ open, device, onClose, onSave, saving }: Devi
         </>
       }
     >
-      <Grid container spacing={2}>
+      <Grid container spacing={4}>
         <Grid item xs={12}>
-          <TextField label="IP Address" required fullWidth size="small" value={form.IP} onChange={(e) => set('IP', e.target.value)} placeholder="10.0.0.1" />
+          <CustomTextField label="IP Address" required fullWidth value={form.IP} onChange={(e) => set('IP', e.target.value)} placeholder="10.0.0.1" />
         </Grid>
         <Grid item xs={12} sm={6}>
-          <TextField label="Device Name" fullWidth size="small" value={form.Device} onChange={(e) => set('Device', e.target.value)} />
+          <CustomTextField label="Device Name" fullWidth value={form.Device} onChange={(e) => set('Device', e.target.value)} />
         </Grid>
         <Grid item xs={12} sm={6}>
-          <TextField label="Collector Region" fullWidth size="small" value={form['Collector Region']} onChange={(e) => set('Collector Region', e.target.value)} />
+          <CustomTextField label="Collector Region" fullWidth value={form['Collector Region']} onChange={(e) => set('Collector Region', e.target.value)} />
         </Grid>
         <Grid item xs={12}>
-          <FormControl fullWidth size="small">
-            <InputLabel id="config-type-label">Config Type</InputLabel>
-            <Select
-              labelId="config-type-label"
-              label="Config Type"
-              value={form['Config Type']}
-              onChange={(e) => set('Config Type', e.target.value)}
-            >
-              <MenuItem value="">— select —</MenuItem>
-              <MenuItem value="SNMP">SNMP</MenuItem>
-              <MenuItem value="ICMP">ICMP</MenuItem>
-              <MenuItem value="SNMP Trap">SNMP Trap</MenuItem>
-              <MenuItem value="Storage">Storage</MenuItem>
-            </Select>
-          </FormControl>
+          <CustomTextField
+            select
+            fullWidth
+            label="Config Type"
+            value={form['Config Type']}
+            onChange={(e) => set('Config Type', e.target.value)}
+          >
+            <MenuItem value="">— select —</MenuItem>
+            <MenuItem value="SNMP">SNMP</MenuItem>
+            <MenuItem value="ICMP">ICMP</MenuItem>
+            <MenuItem value="SNMP Trap">SNMP Trap</MenuItem>
+            <MenuItem value="Storage">Storage</MenuItem>
+          </CustomTextField>
         </Grid>
 
         {!isIcmp && (
           <>
             <Grid item xs={12} sm={6}>
-              <TextField label="SNMPv3 Username" fullWidth size="small" value={form.snmpUser} onChange={(e) => set('snmpUser', e.target.value)} />
+              <CustomTextField label="SNMPv3 Username" fullWidth value={form.snmpUser} onChange={(e) => set('snmpUser', e.target.value)} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField label="Auth Protocol" fullWidth size="small" placeholder="SHA, MD5…" value={form.authProtocol} onChange={(e) => set('authProtocol', e.target.value)} />
+              <CustomTextField label="Auth Protocol" fullWidth placeholder="SHA, MD5…" value={form.authProtocol} onChange={(e) => set('authProtocol', e.target.value)} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField label="Auth Password" type="password" fullWidth size="small" value={form.authKey} onChange={(e) => set('authKey', e.target.value)} />
+              <CustomTextField label="Auth Password" type="password" fullWidth value={form.authKey} onChange={(e) => set('authKey', e.target.value)} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField label="Priv Protocol" fullWidth size="small" placeholder="AES, DES…" value={form.privProtocol} onChange={(e) => set('privProtocol', e.target.value)} />
+              <CustomTextField label="Priv Protocol" fullWidth placeholder="AES, DES…" value={form.privProtocol} onChange={(e) => set('privProtocol', e.target.value)} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField label="Priv Password" type="password" fullWidth size="small" value={form.privKey} onChange={(e) => set('privKey', e.target.value)} />
+              <CustomTextField label="Priv Password" type="password" fullWidth value={form.privKey} onChange={(e) => set('privKey', e.target.value)} />
             </Grid>
           </>
         )}
 
         <Grid item xs={12}>
-          <TextField label="Remarks" fullWidth size="small" multiline rows={2} value={form.Remarks} onChange={(e) => set('Remarks', e.target.value)} />
+          <CustomTextField label="Remarks" fullWidth multiline rows={2} value={form.Remarks} onChange={(e) => set('Remarks', e.target.value)} />
         </Grid>
       </Grid>
     </FormDrawer>

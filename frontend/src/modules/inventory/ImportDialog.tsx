@@ -3,10 +3,10 @@
 /**
  * Import-from-Excel dialog.
  *
- * UI-only port of the old ImportModal (removed from
- * app/(app)/inventory/page.tsx). Same three-step flow, same xlsx parsing
- * calls, same "merge vs replace" mode, same onImport(rows, mode) contract
- * -- only the presentation changed (centered Modal -> MUI Dialog).
+ * Same three-step flow, same xlsx parsing calls, same "merge vs replace"
+ * mode, same onImport(rows, mode) contract as before -- only the sheet
+ * picker restyled to use Vuexy's CustomTextField (select variant) instead
+ * of plain MUI FormControl/InputLabel/Select. No logic changes.
  */
 import { useState, type ChangeEvent } from 'react'
 import Dialog from '@mui/material/Dialog'
@@ -17,14 +17,12 @@ import Button from '@mui/material/Button'
 import Alert from '@mui/material/Alert'
 import Typography from '@mui/material/Typography'
 import Stack from '@mui/material/Stack'
-import FormControl from '@mui/material/FormControl'
-import InputLabel from '@mui/material/InputLabel'
-import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import RadioGroup from '@mui/material/RadioGroup'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Radio from '@mui/material/Radio'
 import Box from '@mui/material/Box'
+import CustomTextField from '@/@core/components/mui/text-field'
 import type { ImportMode } from '@/lib/types'
 
 interface ImportDialogProps {
@@ -119,21 +117,19 @@ export function ImportDialog({ open, label, onClose, onImport }: ImportDialogPro
               <Typography variant="subtitle2" gutterBottom>
                 2. Choose sheet
               </Typography>
-              <FormControl size="small" fullWidth>
-                <InputLabel id="import-sheet-label">Sheet</InputLabel>
-                <Select
-                  labelId="import-sheet-label"
-                  label="Sheet"
-                  value={selectedSheet}
-                  onChange={(e) => handleSheetChange(e.target.value)}
-                >
-                  {sheetNames.map((n) => (
-                    <MenuItem key={n} value={n}>
-                      {n}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <CustomTextField
+                select
+                fullWidth
+                label="Sheet"
+                value={selectedSheet}
+                onChange={(e) => handleSheetChange(e.target.value)}
+              >
+                {sheetNames.map((n) => (
+                  <MenuItem key={n} value={n}>
+                    {n}
+                  </MenuItem>
+                ))}
+              </CustomTextField>
               {previewCount !== null && (
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
                   {previewCount} row(s) found in &ldquo;{selectedSheet}&rdquo;.

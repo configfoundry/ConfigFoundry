@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { AppLayout as VuexyAppLayout } from '@/layouts/AppLayout'
+import VuexyAppLayout from '@/layouts/UserLayout'
 import { useAuth } from '@/providers/AuthProvider'
 import { LoadingRow } from '@/components/ui/Spinner'
 

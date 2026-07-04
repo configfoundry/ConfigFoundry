@@ -1,79 +1,78 @@
 'use client'
 
 /**
- * MUI theme provider for Vuexy-migrated pages.
+ * Theme provider -- now Vuexy's ACTUAL settings/theme system, not a from-scratch
+ * rebuild.
  *
- * Shares the existing `cf-theme` localStorage key and `data-theme` attribute
- * with the legacy (pre-Vuexy) CSS in globals.css, so toggling dark mode
- * stays in sync across modules that have and haven't been migrated yet.
- * The pre-paint script in app/layout.tsx already sets `data-theme` before
- * hydration to avoid a flash; this provider just mirrors that value into
- * the MUI theme.
+ * This wraps children in Vuexy's real SettingsProvider (@core/context/settingsContext,
+ * a straight vendor port) and builds the MUI theme from Vuexy's real themeOptions()
+ * (@core/theme/ThemeOptions.ts -- palette/typography/shadows/overrides, all vendor
+ * files). This replaces the hand-built theme/index.ts + theme/palette.ts from the
+ * earlier (visual-recreation) pass.
+ *
+ * Simplifications made vs. the vendor's own ThemeComponent.tsx wrapper:
+ *  - No RTL/Direction wrapper -- ConfigFoundry has no RTL requirement, so the
+ *    Settings.direction field stays 'ltr' and Vuexy's <Direction> component
+ *    was not ported (it exists purely to toggle document dir + a11y attrs).
+ *  - CssBaseline/GlobalStyles/ThemeProvider are folded into ONE provider here
+ *    (this file) instead of a separate ThemeComponent.tsx, since ConfigFoundry
+ *    already had exactly one theme-provider file and duplicating it would
+ *    violate the "no duplicate providers" rule.
+ *
+ * Legacy bridge: Settings.mode is Vuexy's own field (light | dark | semi-dark),
+ * persisted by SettingsProvider to its own `settings` localStorage key. The
+ * pre-existing `cf-theme` key + `data-theme` attribute are what unmigrated
+ * pages (History/Settings/Documentation, still on plain CSS) key their dark
+ * mode off of. A small effect below mirrors settings.mode into both so
+ * dark-mode toggling stays in sync across migrated and unmigrated pages,
+ * same guarantee the old provider made.
  */
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
-import { ThemeProvider as MuiThemeProvider, CssBaseline } from '@mui/material'
+import { useEffect, useMemo, type ReactNode } from 'react'
+import { createTheme, responsiveFontSizes, ThemeProvider as MuiThemeProvider, CssBaseline, GlobalStyles } from '@mui/material'
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter'
-import { getAppTheme, type ColorMode } from '@/theme'
+import { SettingsProvider } from '@/@core/context/settingsContext'
+import { useSettings } from '@/@core/hooks/useSettings'
+import themeOptions from '@/@core/theme/ThemeOptions'
+import globalStyling from '@/@core/theme/globalStyles'
+import themeConfig from '@/configs/themeConfig'
 
-const STORAGE_KEY = 'cf-theme'
+const LEGACY_STORAGE_KEY = 'cf-theme'
 
-interface ColorModeContextValue {
-  mode: ColorMode
-  toggleMode: () => void
-}
+function ThemeBuilder({ children }: { children: ReactNode }) {
+  const { settings } = useSettings()
 
-const ColorModeContext = createContext<ColorModeContextValue | null>(null)
+  const theme = useMemo(() => {
+    let t = createTheme(themeOptions(settings, 'light'))
+    if (themeConfig.responsiveFontSizes) t = responsiveFontSizes(t)
+    return t
+  }, [settings])
 
-export function useColorMode(): ColorModeContextValue {
-  const ctx = useContext(ColorModeContext)
-  if (!ctx) throw new Error('useColorMode must be used within ThemeModeProvider')
-  return ctx
+  // Legacy bridge for pages not yet migrated off plain CSS.
+  useEffect(() => {
+    const legacyMode = settings.mode === 'light' ? 'light' : 'dark' // semi-dark has no legacy CSS equivalent -> treat as dark
+    document.documentElement.setAttribute('data-theme', legacyMode)
+    try {
+      localStorage.setItem(LEGACY_STORAGE_KEY, legacyMode)
+    } catch {
+      /* ignore -- private browsing etc. */
+    }
+  }, [settings.mode])
+
+  return (
+    <MuiThemeProvider theme={theme}>
+      <CssBaseline />
+      <GlobalStyles styles={() => globalStyling(theme) as never} />
+      {children}
+    </MuiThemeProvider>
+  )
 }
 
 export function ThemeModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<ColorMode>('dark')
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved === 'light' || saved === 'dark') setMode(saved)
-    } catch {
-      /* ignore */
-    }
-  }, [])
-
-  const toggleMode = useCallback(() => {
-    setMode((prev) => {
-      const next: ColorMode = prev === 'dark' ? 'light' : 'dark'
-      document.documentElement.setAttribute('data-theme', next)
-      try {
-        localStorage.setItem(STORAGE_KEY, next)
-      } catch {
-        /* ignore */
-      }
-      return next
-    })
-  }, [])
-
-  const theme = useMemo(() => getAppTheme(mode), [mode])
-  const ctxValue = useMemo(() => ({ mode, toggleMode }), [mode, toggleMode])
-
   return (
     <AppRouterCacheProvider options={{ key: 'mui' }}>
-      <ColorModeContext.Provider value={ctxValue}>
-        <MuiThemeProvider theme={theme}>
-          <CssBaseline />
-          {children}
-        </MuiThemeProvider>
-      </ColorModeContext.Provider>
+      <SettingsProvider>
+        <ThemeBuilder>{children}</ThemeBuilder>
+      </SettingsProvider>
     </AppRouterCacheProvider>
   )
 }

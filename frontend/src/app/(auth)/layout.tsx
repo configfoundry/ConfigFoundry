@@ -1,36 +1,16 @@
 import type { ReactNode } from 'react'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
+import BlankLayout from '@/@core/layouts/BlankLayout'
 
 /**
- * Shared auth layout -- centers whatever auth page is rendered inside a
- * max-width column. UI only; no routing or auth logic here.
+ * Shared auth layout. UI only; no routing or auth logic here.
  *
- * The "ConfigFoundry" brand header used to live inside login/page.tsx.
- * Moved here since it's shared chrome, not something specific to the
- * login form -- the only structural (non-cosmetic) call made in this
- * migration pass.
+ * Replaces the earlier hand-built centered-card AuthLayout (own Box +
+ * "ConfigFoundry" header, max-width 420) with Vuexy's actual BlankLayout --
+ * a real vendor file, full-bleed, no assumptions about page content width.
+ * The centered-card look doesn't apply anymore: Login now renders its own
+ * full-width two-column split-screen (see modules/auth/LoginView.tsx),
+ * which BlankLayout is designed to host.
  */
 export default function AuthLayout({ children }: { children: ReactNode }) {
-  return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: 'background.default',
-        p: 2,
-      }}
-    >
-      <Box sx={{ width: '100%', maxWidth: 420 }}>
-        <Box sx={{ textAlign: 'center', mb: 3.5 }}>
-          <Typography variant="h5" fontWeight={700}>
-            Config<Box component="span" sx={{ color: 'primary.main' }}>Foundry</Box>
-          </Typography>
-        </Box>
-        {children}
-      </Box>
-    </Box>
-  )
+  return <BlankLayout>{children}</BlankLayout>
 }

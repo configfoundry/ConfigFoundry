@@ -1,12 +1,15 @@
-import { AdminTabs } from '@/modules/administration/AdminTabs'
-import { UsersView } from '@/modules/administration/UsersView'
+'use client'
 
-// Thin route file per the modules/<name> architecture. Route path unchanged (/admin/users).
-export default function UsersAdminPage() {
-  return (
-    <>
-      <AdminTabs />
-      <UsersView />
-    </>
-  )
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { LoadingRow } from '@/components/ui/Spinner'
+
+// Moved to /administration/users as part of the nav restructure. Kept as a
+// client-side redirect (not next.config.mjs redirects() -- this app builds
+// with `output: 'export'`, which has no server to run redirects on) so any
+// old bookmark/link to /admin/users still lands somewhere real.
+export default function AdminUsersRedirect() {
+  const router = useRouter()
+  useEffect(() => { router.replace('/administration/users') }, [router])
+  return <LoadingRow />
 }

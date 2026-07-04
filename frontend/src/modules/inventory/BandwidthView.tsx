@@ -15,6 +15,7 @@ import {
 } from '@mui/x-data-grid'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Stack from '@mui/material/Stack'
 import Skeleton from '@mui/material/Skeleton'
 import Alert from '@mui/material/Alert'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
@@ -130,15 +131,39 @@ export function BandwidthView() {
 
   if (rows.length === 0 && !search) {
     return (
-      <EmptyState
-        title="No bandwidth rows yet"
-        sub="Import or add bandwidth cap entries."
-        action={
-          <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={() => setEditRow('new')}>
-            Add Row
-          </Button>
-        }
-      />
+      <>
+        <EmptyState
+          title="No bandwidth rows yet"
+          sub="Import or add bandwidth cap entries."
+          action={
+            <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap" useFlexGap>
+              <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={() => setEditRow('new')}>
+                Add Row
+              </Button>
+              <Button variant="outlined" startIcon={<FileUploadOutlinedIcon />} onClick={() => setImportOpen(true)}>
+                Import from Excel
+              </Button>
+            </Stack>
+          }
+        />
+
+        {editRow !== null && (
+          <BandwidthFormDrawer
+            open
+            row={typeof editRow === 'string' ? null : editRow}
+            onClose={() => setEditRow(null)}
+            onSave={(r) => saveMut.mutate(r)}
+            saving={saveMut.isPending}
+          />
+        )}
+
+        <ImportDialog
+          open={importOpen}
+          label="Bandwidth Rows"
+          onClose={() => setImportOpen(false)}
+          onImport={(rows2, mode) => importMut.mutate({ rows: rows2, mode })}
+        />
+      </>
     )
   }
 
