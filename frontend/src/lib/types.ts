@@ -82,6 +82,8 @@ export interface Meta {
 export interface Finding {
   severity: 'error' | 'warning' | 'info'
   code?: string
+  /** Rule category from core/validator.py -- "inventory" | "snmp" | "network" | "generation". Optional/additive: the backend has always sent this, it just wasn't modeled here before. */
+  category?: string
   message: string
   deviceId?: string
   device?: string

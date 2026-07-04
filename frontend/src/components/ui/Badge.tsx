@@ -1,23 +1,8 @@
-import type { ReactNode } from 'react'
-
-type Variant = 'success' | 'warning' | 'error' | 'info' | 'neutral'
-
-export function Badge({
-  variant = 'neutral',
-  children,
-}: {
-  variant?: Variant
-  children: ReactNode
-}) {
-  return <span className={`badge badge-${variant}`}>{children}</span>
-}
-
-export function SeverityBadge({ severity }: { severity: string }) {
-  const map: Record<string, Variant> = {
-    error: 'error',
-    warning: 'warning',
-    info: 'info',
-    success: 'success',
-  }
-  return <Badge variant={map[severity] ?? 'neutral'}>{severity}</Badge>
-}
+// Deprecated, unused. This was the CSS-badge component used by the
+// pre-migration Validation page (SeverityBadge). Validation now renders
+// severity via MUI Chip (see modules/validation/*). No remaining imports
+// reference this file anywhere in the codebase (verified by grep before
+// removal). This sandbox could not delete files from the connected
+// project folder (the mount rejects unlink) -- please delete this file
+// by hand. Left with no exports so a stray import fails loudly.
+export {}

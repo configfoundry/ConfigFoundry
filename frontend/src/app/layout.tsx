@@ -3,6 +3,7 @@ import './globals.css'
 import { QueryProvider } from '@/providers/QueryProvider'
 import { AuthProvider } from '@/providers/AuthProvider'
 import { ToastProvider } from '@/components/ui/Toast'
+import { ThemeModeProvider } from '@/providers/ThemeModeProvider'
 
 export const metadata: Metadata = {
   title: 'ConfigFoundry',
@@ -26,9 +27,11 @@ export default function RootLayout({
       </head>
       <body>
         <QueryProvider>
-          <ToastProvider>
-            <AuthProvider>{children}</AuthProvider>
-          </ToastProvider>
+          <ThemeModeProvider>
+            <ToastProvider>
+              <AuthProvider>{children}</AuthProvider>
+            </ToastProvider>
+          </ThemeModeProvider>
         </QueryProvider>
       </body>
     </html>

@@ -1,0 +1,3 @@
+Leftover debris from a filesystem-permission check made during the Vuexy
+migration session (confirming this sandbox's mount can't delete files).
+Empty, unused, safe to delete by hand.

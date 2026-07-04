@@ -3,11 +3,11 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { AppShell } from '@/components/AppShell'
+import { AppLayout as VuexyAppLayout } from '@/layouts/AppLayout'
 import { useAuth } from '@/providers/AuthProvider'
 import { LoadingRow } from '@/components/ui/Spinner'
 
-export default function AppLayout({ children }: { children: ReactNode }) {
+export default function AuthGuardedLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
   const router = useRouter()
 
@@ -25,5 +25,5 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     )
   }
 
-  return <AppShell>{children}</AppShell>
+  return <VuexyAppLayout>{children}</VuexyAppLayout>
 }
