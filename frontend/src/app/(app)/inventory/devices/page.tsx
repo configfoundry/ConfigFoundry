@@ -1,17 +1,15 @@
-import { PageHeader } from '@/components/common/PageHeader'
-import { DevicesView } from '@/modules/inventory/DevicesView'
+'use client'
 
-// Tab strip removed -- the sidebar's Inventory nav group already covers
-// Devices/Bandwidth/Subnets/Templates navigation. Title lives here (not
-// inside DevicesView) so it stays visible during DevicesView's own
-// loading/error/empty branches without touching that component's logic.
-// Devices' own "Add Device" action stays where it already is, inside the
-// view's Search Filters toolbar -- not duplicated here.
-export default function InventoryDevicesPage() {
-  return (
-    <>
-      <PageHeader title="Devices" description="Network devices tracked in inventory, with region, config type, and status." />
-      <DevicesView />
-    </>
-  )
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { LoadingRow } from '@/components/ui/Spinner'
+
+// Moved to /infrastructure/devices as part of the Inventory -> Infrastructure
+// IA rename. Kept as a client-side redirect (not next.config.mjs redirects()
+// -- this app builds with `output: 'export'`, which has no server to run
+// redirects on) so any old bookmark/link still lands somewhere real.
+export default function InventoryDevicesRedirect() {
+  const router = useRouter()
+  useEffect(() => { router.replace('/infrastructure/devices') }, [router])
+  return <LoadingRow />
 }

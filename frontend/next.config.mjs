@@ -20,6 +20,21 @@ const nextConfig = {
           ]
         },
       }),
+
+  // DocsContent.tsx intentionally does `await import(mermaidPackageName)`
+  // with a variable specifier -- not a string literal -- so the build
+  // doesn't hard-fail when the optional/vendored `mermaid` package isn't
+  // present (see docs/airgap.md; the component falls back to plain-text
+  // diagrams when it's missing). Webpack can't statically resolve a
+  // variable import target, so it always emits a "Critical dependency:
+  // the request of a dependency is an expression" warning for that line --
+  // harmless noise, not a real error, and not fixable without abandoning
+  // the optional-dependency pattern. Silencing it here so it doesn't spam
+  // every dev-server compile.
+  webpack: (config) => {
+    config.module.exprContextCritical = false
+    return config
+  },
 }
 
 export default nextConfig

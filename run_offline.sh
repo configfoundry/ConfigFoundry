@@ -20,4 +20,19 @@ if [[ ! -d frontend/out ]] || [[ -z "$(ls -A frontend/out 2>/dev/null)" ]]; then
   echo "! frontend/out/ is missing -- the UI will 404. Run ./install_offline.sh to build it." >&2
 fi
 
-exec .venv/bin/python3 server.py "$@"
+# Load the single root .env (DD_* Datadog config, etc.) if present, without
+# requiring `make` -- offline/air-gapped deployments may start this script
+# directly (e.g. from a systemd unit).
+if [[ -f .env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
+# ddtrace-run enables Datadog APM auto-instrumentation (installed from the
+# offline wheelhouse like every other dependency -- see requirements.txt).
+# DD_SERVICE is injected directly here (not read from .env) to match the
+# online (Makefile) startup path -- see its comment for why.
+export DD_SERVICE="configfoundry-api"
+exec .venv/bin/ddtrace-run .venv/bin/python3 server.py "$@"

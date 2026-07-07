@@ -54,9 +54,9 @@ export function DashboardKpiRow({
   loading: boolean
 }) {
   const kpis: Kpi[] = [
-    { key: 'devices', label: 'Devices', value: deviceCount, icon: 'tabler:box', color: 'primary', href: '/inventory/devices' },
-    { key: 'bandwidth', label: 'Bandwidth Rows', value: bandwidthCount, icon: 'tabler:gauge', color: 'info', href: '/inventory/bandwidth-profiles' },
-    { key: 'subnets', label: 'Subnets', value: subnetCount, icon: 'tabler:topology-star-3', color: 'secondary', href: '/inventory/subnets' },
+    { key: 'devices', label: 'Devices', value: deviceCount, icon: 'tabler:box', color: 'primary', href: '/infrastructure/devices' },
+    { key: 'bandwidth', label: 'Bandwidth Rows', value: bandwidthCount, icon: 'tabler:gauge', color: 'info', href: '/infrastructure/bandwidth-profiles' },
+    { key: 'subnets', label: 'Subnets', value: subnetCount, icon: 'tabler:topology-star-3', color: 'secondary', href: '/infrastructure/subnets' },
     { key: 'configs', label: 'Configs Generated', value: configsGenerated, icon: 'tabler:file-code', color: 'success', href: '/configuration/generated' },
     {
       key: 'validation',

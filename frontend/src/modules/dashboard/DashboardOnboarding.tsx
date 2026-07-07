@@ -49,17 +49,17 @@ export function DashboardOnboarding({ hasHistory }: Props) {
   const steps = [
     {
       key: 'import',
-      label: 'Import Inventory',
+      label: 'Import Infrastructure',
       done: false,
       desc: 'Add devices manually or import a spreadsheet.',
-      href: '/inventory/devices',
+      href: '/infrastructure/devices',
     },
     {
       key: 'templates',
       label: 'Configure Templates',
       done: false,
       desc: 'Optional -- standardize output across devices.',
-      href: '/inventory/templates',
+      href: '/infrastructure/templates',
     },
     {
       key: 'validate',
@@ -90,8 +90,12 @@ export function DashboardOnboarding({ hasHistory }: Props) {
           <Icon icon="tabler:rocket" fontSize="2.25rem" />
         </Box>
         <Typography variant="h5" fontWeight={600} sx={{ mb: 1 }}>Welcome to ConfigFoundry</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 6, maxWidth: 480, mx: 'auto' }}>
-          You haven't added any inventory yet. Complete these steps to get your first configuration generated.
+       <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mb: 6, maxWidth: 480, mx: 'auto' }}
+        >
+          You have not added any inventory yet. Complete these steps to get your first configuration generated.
         </Typography>
 
         <List sx={{ maxWidth: 460, mx: 'auto', mb: 6, textAlign: 'left' }}>
@@ -128,8 +132,8 @@ export function DashboardOnboarding({ hasHistory }: Props) {
         </List>
 
         <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap" useFlexGap>
-          <Button variant="contained" startIcon={<Icon icon="tabler:upload" />} onClick={() => router.push('/inventory/devices')}>
-            Import Inventory
+          <Button variant="contained" startIcon={<Icon icon="tabler:upload" />} onClick={() => router.push('/infrastructure/devices')}>
+            Import Infrastructure
           </Button>
           <Button variant="outlined" component={Link} href="/documentation/getting-started">
             Sample Inventory

@@ -386,6 +386,8 @@ textarea.input { resize: vertical; min-height: 80px; }
 .search-wrap svg {
   position: absolute;
   left: 9px;
+  width: 16px;
+  height: 16px;
   color: var(--text-faint);
   pointer-events: none;
 }

@@ -15,7 +15,15 @@ function escapeForDisplay(s: string): string {
 function formatLastUpdated(iso: string | null): string | null {
   if (!iso) return null
   try {
-    return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+    // Locale pinned to 'en-US' (not `undefined`) on purpose: this string is
+    // rendered during SSR (Node's default locale) and again on the client
+    // (the browser's locale). Those can disagree -- e.g. "July 3, 2026" on
+    // the server vs "3 July 2026" on a browser set to an en-GB-style locale
+    // -- which is exactly a React hydration mismatch ("Text content does
+    // not match server-rendered HTML"). Pinning the locale makes both
+    // renders produce the identical string regardless of the visitor's or
+    // server's OS locale.
+    return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   } catch {
     return null
   }

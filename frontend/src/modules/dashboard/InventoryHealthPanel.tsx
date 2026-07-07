@@ -39,8 +39,7 @@ import ReactApexcharts from '@/@core/components/react-apexcharts'
 import { hexToRGBA } from '@/@core/utils/hex-to-rgba'
 import type { Device } from '@/lib/types'
 import type { ThemeColor } from '@/@core/layouts/types'
-
-const ICMP_TYPES = new Set(['icmp', 'snmp trap', 'storage'])
+import { validationStatus } from '@/modules/inventory/deviceMeta'
 
 interface Row {
   title: string
@@ -52,24 +51,7 @@ interface Row {
 export function InventoryHealthPanel({ devices, loading }: { devices: Device[]; loading: boolean }) {
   const theme = useTheme()
 
-  const ipCounts = new Map<string, number>()
-  for (const d of devices) {
-    if (!d.IP) continue
-    ipCounts.set(d.IP, (ipCounts.get(d.IP) ?? 0) + 1)
-  }
-  const failed = devices.filter((d) => d.IP && (ipCounts.get(d.IP) ?? 0) > 1).length
-
-  const warnings = devices.filter((d) => {
-    if (d.IP && (ipCounts.get(d.IP) ?? 0) > 1) return false
-    const isIcmp = ICMP_TYPES.has(((d['Config Type'] as string) ?? '').toLowerCase().trim())
-    const missingRegion = !d['Collector Region']
-    const missingCreds = !isIcmp && !d.snmpUser
-    return missingRegion || missingCreds
-  }).length
-
-  const total = devices.length
-  const passed = total - failed - warnings
-  const passPct = total === 0 ? 100 : Math.round((passed / total) * 100)
+  const { total, passed, warnings, failed, passPct } = validationStatus(devices)
   const statusColor: ThemeColor = total === 0 ? 'secondary' : passPct >= 90 ? 'success' : passPct >= 50 ? 'warning' : 'error'
 
   const rows: Row[] = [
@@ -121,7 +103,7 @@ export function InventoryHealthPanel({ devices, loading }: { devices: Device[]; 
   return (
     <Card sx={{ height: '100%' }}>
       <CardHeader
-        title="Inventory Health"
+        title="Infrastructure Health"
         subheader="Validation status of your current device inventory"
         action={
           <Button size="small" component={Link} href="/validation/findings" endIcon={<Icon icon="tabler:arrow-right" />}>

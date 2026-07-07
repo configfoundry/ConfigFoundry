@@ -153,8 +153,8 @@ export function GenerationHistoryList({
           primaryLabel="Generate Configuration"
           primaryIcon="tabler:wand"
           onPrimary={() => router.push('/configuration/generate')}
-          secondaryLabel="Review Inventory"
-          onSecondary={() => router.push('/inventory/devices')}
+          secondaryLabel="Review Infrastructure"
+          onSecondary={() => router.push('/infrastructure/devices')}
           docsHref="/documentation/configuration"
         />
       </Card>

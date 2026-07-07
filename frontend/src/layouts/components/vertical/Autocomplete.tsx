@@ -178,7 +178,7 @@ const NoResult = ({ value, setOpenDialog }: NoResultProps) => {
         <ListItem sx={{ py: 2 }} disablePadding onClick={() => setOpenDialog(false)}>
           <Box
             component={Link}
-            href='/inventory/devices'
+            href='/infrastructure/devices'
             sx={{
               display: 'flex',
               alignItems: 'center',
@@ -189,7 +189,7 @@ const NoResult = ({ value, setOpenDialog }: NoResultProps) => {
             <Box sx={{ mr: 2.5, display: 'flex', color: 'text.primary' }}>
               <Icon icon='tabler:box' />
             </Box>
-            <Typography>Inventory</Typography>
+            <Typography>Infrastructure</Typography>
           </Box>
         </ListItem>
         <ListItem sx={{ py: 2 }} disablePadding onClick={() => setOpenDialog(false)}>

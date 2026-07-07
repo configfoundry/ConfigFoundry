@@ -1,12 +1,16 @@
-import { PageHeader } from '@/components/common/PageHeader'
-import { BandwidthView } from '@/modules/inventory/BandwidthView'
+'use client'
 
-// Tab strip removed -- see inventory/devices/page.tsx for the pattern.
-export default function InventoryBandwidthPage() {
-  return (
-    <>
-      <PageHeader title="Bandwidth Profiles" description="Interface bandwidth caps applied during configuration generation." />
-      <BandwidthView />
-    </>
-  )
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { LoadingRow } from '@/components/ui/Spinner'
+
+// Moved to /infrastructure/bandwidth-profiles as part of the Inventory ->
+// Infrastructure IA rename. Kept as a client-side redirect (not
+// next.config.mjs redirects() -- this app builds with `output: 'export'`,
+// which has no server to run redirects on) so any old bookmark/link still
+// lands somewhere real.
+export default function InventoryBandwidthRedirect() {
+  const router = useRouter()
+  useEffect(() => { router.replace('/infrastructure/bandwidth-profiles') }, [router])
+  return <LoadingRow />
 }

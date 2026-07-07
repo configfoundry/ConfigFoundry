@@ -82,3 +82,40 @@ export function isSnmpConfigType(d: Device): boolean {
   const cfgType = ((d['Config Type'] as string) ?? '').toLowerCase().trim()
   return !ICMP_TYPES.has(cfgType)
 }
+
+export interface ValidationStatus {
+  total: number
+  passed: number
+  warnings: number
+  failed: number
+  passPct: number
+}
+
+/**
+ * Tri-state validation classification (Passed / Warnings / Failed), shared
+ * by the Dashboard's KPI rail and its Inventory Health panel. Pulled into
+ * one place after those two surfaces were found computing this
+ * independently (one as a binary configured/needs-attention split, the
+ * other as this tri-state split) and showing two different numbers for
+ * what a user reasonably expects to be the same fact. Duplicate-IP is
+ * treated as Failed (a real conflict the Generate workflow also checks via
+ * `hasIssues`), missing region/credentials as Warning (administrative
+ * incompleteness, not a conflict), matching the same rule Configuration >
+ * Generate uses to decide whether to prompt "generate anyway?".
+ */
+export function validationStatus(devices: Device[]): ValidationStatus {
+  const ipCounts = new Map<string, number>()
+  for (const d of devices) {
+    if (!d.IP) continue
+    ipCounts.set(d.IP, (ipCounts.get(d.IP) ?? 0) + 1)
+  }
+  const failed = devices.filter((d) => d.IP && (ipCounts.get(d.IP) ?? 0) > 1).length
+  const warnings = devices.filter((d) => {
+    if (d.IP && (ipCounts.get(d.IP) ?? 0) > 1) return false
+    return deviceStatus(d) === 'attention'
+  }).length
+  const total = devices.length
+  const passed = total - failed - warnings
+  const passPct = total === 0 ? 100 : Math.round((passed / total) * 100)
+  return { total, passed, warnings, failed, passPct }
+}

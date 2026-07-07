@@ -31,7 +31,7 @@ interface Action {
 
 const actions: Action[] = [
   { title: 'Generate Config', subtitle: 'Produce new YAML output', href: '/configuration/generate', icon: 'tabler:wand', color: 'primary', cta: 'Generate' },
-  { title: 'Manage Devices', subtitle: 'Review and edit inventory', href: '/inventory/devices', icon: 'tabler:box', color: 'info', cta: 'Manage' },
+  { title: 'Manage Devices', subtitle: 'Review and edit infrastructure', href: '/infrastructure/devices', icon: 'tabler:box', color: 'info', cta: 'Manage' },
   { title: 'Run Validation', subtitle: 'Check current inventory health', href: '/validation/run', icon: 'tabler:checklist', color: 'warning', cta: 'Run' },
   { title: 'View History', subtitle: 'Browse past generation runs', href: '/configuration/generated', icon: 'tabler:history', color: 'secondary', cta: 'View' },
 ]

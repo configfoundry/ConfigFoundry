@@ -38,10 +38,10 @@ export function TemplatesView() {
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>New Template</DialogTitle>
         <DialogContent>
-          <Alert severity="info" sx={{ mt: 1 }}>
-            Template management isn't connected to a backend yet. This dialog is a UI placeholder --
-            wire it to a real Template model + endpoint to enable it.
-          </Alert>
+         <Alert severity="info" sx={{ mt: 1 }}>
+          Template management isn&apos;t connected to a backend yet. This dialog is a UI placeholder —
+          wire it to a real Template model + endpoint to enable it.
+        </Alert>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Close</Button>

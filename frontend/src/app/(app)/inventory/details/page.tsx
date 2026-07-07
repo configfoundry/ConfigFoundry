@@ -1,38 +1,24 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
-import { DeviceDetailsView } from '@/modules/inventory/DeviceDetailsView'
-import { EmptyState } from '@/components/common/EmptyState'
+import { useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { LoadingRow } from '@/components/ui/Spinner'
 
-/**
- * Thin route file per the modules/<name> architecture -- implementation
- * lives in modules/inventory/DeviceDetailsView.tsx (see that file's header
- * for the technical-debt notes on this being a client-side-only detail page
- * built against the existing ['devices'] list query, per approved Strategy
- * A -- no new backend endpoint).
- *
- * This is a query-param route (/inventory/details?id=...), not a dynamic
- * segment (/inventory/[id]) -- production builds use `output: 'export'`
- * (next.config.mjs; FastAPI serves frontend/out/ as static files), which
- * requires generateStaticParams() for any dynamic path segment. Device IDs
- * are backend-generated at runtime and unbounded, so there's no fixed set
- * of paths to pre-render. A query-param route needs no static params at
- * all: every device resolves to the same pre-built details/index.html,
- * and the id is read client-side, exactly like the rest of this
- * client-only page already works.
- */
-export default function DeviceDetailsPage() {
+// Moved to /infrastructure/details as part of the Inventory -> Infrastructure
+// IA rename. Kept as a client-side redirect (not next.config.mjs redirects()
+// -- this app builds with `output: 'export'`, which has no server to run
+// redirects on) so any old bookmark/link still lands somewhere real. This
+// route carries an `?id=` query param (see infrastructure/details/page.tsx
+// for why it's query-param based, not a dynamic segment), so the redirect
+// forwards the full current query string rather than dropping it.
+export default function InventoryDetailsRedirect() {
+  const router = useRouter()
   const searchParams = useSearchParams()
-  const deviceId = searchParams.get('id')
 
-  if (!deviceId) {
-    return (
-      <EmptyState
-        title="No device selected"
-        sub="Open a device from the Inventory list to view its details."
-      />
-    )
-  }
+  useEffect(() => {
+    const qs = searchParams.toString()
+    router.replace(qs ? `/infrastructure/details?${qs}` : '/infrastructure/details')
+  }, [router, searchParams])
 
-  return <DeviceDetailsView deviceId={deviceId} />
+  return <LoadingRow />
 }

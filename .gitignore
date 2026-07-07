@@ -61,3 +61,4 @@ vendor/npm/swc-binaries/
 vendor/npm/node_modules.tar.gz
 vendor/npm/CHECKSUMS.sha256
 vendor/npm/package-lock.json.snapshot
+.env

@@ -110,8 +110,24 @@ const VerticalNavLink = ({
 
   const icon = parent && !item.icon ? themeConfig.navSubItemIcon : item.icon
 
+  // ConfigFoundry serves the frontend as a Next.js static export
+  // (output: 'export'), which always resolves routes to a trailing-slash
+  // URL (e.g. /inventory/devices/) -- but every href in navigation/vertical/
+  // index.ts is written without one (/inventory/devices), matching how
+  // they're used as Next <Link> targets elsewhere in the app. usePathname()
+  // reflects the real, trailing-slash URL, so the vendor's original strict
+  // `pathname === item.path` check silently never matched anything: no
+  // leaf nav item has ever shown its active/highlighted state. Stripping a
+  // single trailing slash from both sides before comparing (root `/` is
+  // left alone) fixes this without touching the href values used
+  // everywhere else for actual navigation.
+  const stripTrailingSlash = (p: string) => (p.length > 1 && p.endsWith('/') ? p.slice(0, -1) : p)
+
   const isNavLinkActive = () => {
-    if (pathname === item.path || handleURLQueries(pathname, searchParams, item.path)) {
+    if (
+      stripTrailingSlash(pathname) === stripTrailingSlash(item.path ?? '') ||
+      handleURLQueries(pathname, searchParams, item.path)
+    ) {
       return true
     } else {
       return false

@@ -147,7 +147,7 @@ export function DeviceDetailsView({ deviceId }: { deviceId: string }) {
       qc.invalidateQueries({ queryKey: ['devices'] })
       qc.invalidateQueries({ queryKey: ['meta'] })
       toast('Device deleted', 'success')
-      router.push('/inventory/devices')
+      router.push('/infrastructure/devices')
     },
     onError: (e) => toast((e as Error).message, 'error'),
   })
@@ -167,8 +167,8 @@ export function DeviceDetailsView({ deviceId }: { deviceId: string }) {
         title="Device not found"
         sub="It may have been deleted, or this link is out of date."
         action={
-          <Button component={Link} href="/inventory/devices" variant="contained" startIcon={<Icon icon="tabler:chevron-left" />}>
-            Back to Inventory
+          <Button component={Link} href="/infrastructure/devices" variant="contained" startIcon={<Icon icon="tabler:chevron-left" />}>
+            Back to Infrastructure
           </Button>
         }
       />
@@ -251,8 +251,8 @@ export function DeviceDetailsView({ deviceId }: { deviceId: string }) {
           </CardActions>
         </Card>
 
-        <Button component={Link} href="/inventory/devices" startIcon={<Icon icon="tabler:chevron-left" />} sx={{ mt: 4 }}>
-          Back to Inventory
+        <Button component={Link} href="/infrastructure/devices" startIcon={<Icon icon="tabler:chevron-left" />} sx={{ mt: 4 }}>
+          Back to Infrastructure
         </Button>
       </Grid>
 

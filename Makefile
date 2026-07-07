@@ -4,6 +4,12 @@
 .PHONY: help install install-backend install-frontend dev dev-backend dev-frontend \
         build serve test typecheck lint clean
 
+# Load the single root .env (DD_* Datadog config, DATABASE_URL, etc.) into
+# every recipe's environment. `-include` so a missing .env doesn't break
+# targets that don't need it (e.g. `make help`).
+-include .env
+export
+
 help:
 	@echo ""
 	@echo "  make install            Install both backend and frontend dependencies"
@@ -32,8 +38,13 @@ install-frontend:
 
 # ── development ──────────────────────────────────────────────────────────────
 
+# ddtrace-run enables Datadog APM auto-instrumentation (FastAPI/Starlette,
+# SQLAlchemy, httpx/requests, stdlib logging) with zero manual span code.
+# DD_SERVICE is the standard Datadog env var -- injected here (not in .env)
+# because that file is shared with the frontend, which needs a different
+# service name (see frontend/package.json).
 dev-backend:
-	python3 server.py
+	DD_SERVICE=configfoundry-api ddtrace-run python3 server.py
 
 dev-frontend:
 	cd frontend && npm run dev
@@ -42,7 +53,7 @@ dev-frontend:
 dev:
 	@echo "Starting backend on :8420 and Next.js dev server on :3001…"
 	@trap 'kill 0' INT; \
-	  python3 server.py & \
+	  DD_SERVICE=configfoundry-api ddtrace-run python3 server.py & \
 	  (cd frontend && npm run dev) & \
 	  wait
 
@@ -75,8 +86,9 @@ build:
 	fi
 
 # Build the static frontend, then start FastAPI — everything on one port.
+# (ddtrace-run — see dev-backend above for why.)
 serve: build
-	python3 server.py
+	DD_SERVICE=configfoundry-api ddtrace-run python3 server.py
 
 # ── quality ──────────────────────────────────────────────────────────────────
 

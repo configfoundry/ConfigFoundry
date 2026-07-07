@@ -1,12 +1,15 @@
-import { PageHeader } from '@/components/common/PageHeader'
-import { SubnetsView } from '@/modules/inventory/SubnetsView'
+'use client'
 
-// Tab strip removed -- see inventory/devices/page.tsx for the pattern.
-export default function InventorySubnetsPage() {
-  return (
-    <>
-      <PageHeader title="Subnets" description="IP subnets available for device assignment." />
-      <SubnetsView />
-    </>
-  )
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { LoadingRow } from '@/components/ui/Spinner'
+
+// Moved to /infrastructure/subnets as part of the Inventory -> Infrastructure
+// IA rename. Kept as a client-side redirect (not next.config.mjs redirects()
+// -- this app builds with `output: 'export'`, which has no server to run
+// redirects on) so any old bookmark/link still lands somewhere real.
+export default function InventorySubnetsRedirect() {
+  const router = useRouter()
+  useEffect(() => { router.replace('/infrastructure/subnets') }, [router])
+  return <LoadingRow />
 }

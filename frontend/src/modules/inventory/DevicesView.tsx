@@ -85,13 +85,13 @@ import { ICMP_TYPES, STATUS_META, deviceStatus, deviceTypeMeta, configTypeMeta }
 
 /** Per-row action menu -- ported from Vuexy's User List RowOptions (IconButton
  * + Menu + MenuItem), replacing GridActionsCellItem + @mui/icons-material.
- * "View" now links to the Device Details page (/inventory/details?id=...) --
- * this item was intentionally omitted when this menu was first built, since
- * no such page existed yet; now that it does, this is the only place a user
- * can reach it from the list. Query-param route, not a dynamic segment --
- * see app/(app)/inventory/details/page.tsx for why (output:'export' static
- * builds can't pre-render an unbounded set of backend-generated device
- * IDs as path segments). */
+ * "View" now links to the Device Details page (/infrastructure/details?id=...)
+ * -- this item was intentionally omitted when this menu was first built,
+ * since no such page existed yet; now that it does, this is the only place
+ * a user can reach it from the list. Query-param route, not a dynamic
+ * segment -- see app/(app)/infrastructure/details/page.tsx for why
+ * (output:'export' static builds can't pre-render an unbounded set of
+ * backend-generated device IDs as path segments). */
 function DeviceRowOptions({ deviceId, onEdit, onDelete }: { deviceId: string; onEdit: () => void; onDelete: () => void }) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const open = Boolean(anchorEl)
@@ -112,7 +112,7 @@ function DeviceRowOptions({ deviceId, onEdit, onDelete }: { deviceId: string; on
       >
         <MenuItem
           component={Link}
-          href={`/inventory/details?id=${encodeURIComponent(deviceId)}`}
+          href={`/infrastructure/details?id=${encodeURIComponent(deviceId)}`}
           sx={{ '& svg': { mr: 2 } }}
           onClick={() => setAnchorEl(null)}
         >
