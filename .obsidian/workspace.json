@@ -1,0 +1,220 @@
+{
+  "main": {
+    "id": "f6a5ff668a49f62e",
+    "type": "split",
+    "children": [
+      {
+        "id": "6a90ff45a16720dd",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4c75fe2a410df415",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "2f8000aced83161c",
+    "type": "split",
+    "children": [
+      {
+        "id": "81b68cdf69d11c61",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "9e2e3b7e552fbae0",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "f8f2d5cbb7b74b80",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "b54b45cd77787acc",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "61ba4b3e41d0ff68",
+    "type": "split",
+    "children": [
+      {
+        "id": "fa9bf178ad3a79ac",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "74db80c304c4bb20",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "29c746c97a9e9726",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "f89484ab3b643dfb",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "21b3b97dd7d325ab",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "a2a255f029a2e71f",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "4c75fe2a410df415",
+  "lastOpenFiles": [
+    "frontend/node_modules/eslint-plugin-import/docs/rules/export.md",
+    "Features/Features.md",
+    "Operations/Operations.md",
+    "Executive Summary.md",
+    "Research/README.md",
+    "Meetings/README.md",
+    "Glossary/Glossary.md",
+    "Roadmap/Long-term Vision.md",
+    "Roadmap/Future Ideas.md",
+    "Roadmap/v2 - Enterprise.md",
+    "Roadmap/v1.md",
+    "Roadmap/MVP.md",
+    "Roadmap/Next Sprint.md",
+    "Roadmap/Current Sprint.md",
+    "Roadmap Overview.md",
+    "Development/Changelog.md",
+    "Development/Code Quality Report.md",
+    "Development/Technical Debt.md",
+    "Architecture/Decisions/ADR-0007 - perm_version Token Invalidation.md",
+    "Architecture/Decisions/ADR-0006 - URL-Based API Versioning.md",
+    "Architecture/Decisions/ADR-0005 - Same-Origin Static Frontend.md",
+    "Architecture/Decisions/ADR-0004 - Alembic Migrations.md",
+    "Architecture/Decisions/ADR-0003 - Air-Gap-First Architecture.md",
+    "Architecture/Decisions/ADR-0002 - Permission-Code RBAC.md",
+    "Architecture/Decisions/ADR-0001 - SQLite Default with StorageProvider Abstraction.md",
+    "Architecture/Decisions/ADR Index.md",
+    "Features/Feature - Excel Import Export.md.tmp.80832.38c9c41a8ee3",
+    "Integrations Documentation",
+    "Frontend Documentation",
+    "API Documentation",
+    "Glossary",
+    "Research",
+    "Meetings",
+    "Product",
+    "Roadmap",
+    "Operations",
+    "Untitled 1.canvas",
+    "Untitled.canvas"
+  ]
+}
