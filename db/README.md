@@ -32,11 +32,11 @@ parent directory does.
 The schema is defined and evolved entirely through Alembic migrations in
 `alembic/versions/`, applied automatically at startup. Never modify the
 database by hand — add a new migration instead. See
-[Migrations](../docs/migrations.md).
+[Migrations](../docs/architecture/migrations.md).
 
 ## Backups
 
-See [Storage § Backups](../docs/storage.md#backups).
+See [Storage § Backups](../docs/architecture/storage.md#backups).
 
 ## Git
 

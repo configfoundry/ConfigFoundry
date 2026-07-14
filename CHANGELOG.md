@@ -3,7 +3,7 @@
 All notable changes to ConfigFoundry are documented here. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 versioning follows [Semantic Versioning](https://semver.org/) — see
-[Roadmap](docs/roadmap.md) for the versioning strategy and what's
+[Roadmap](docs/roadmap/roadmap.md) for the versioning strategy and what's
 planned toward v1.0.
 
 ## [Unreleased]
@@ -15,14 +15,14 @@ Nothing yet — the next entry here starts once v0.5.0 is tagged.
 The first broadly documented release. Treat this as an **Enterprise
 Preview** — the core platform, security model, and offline deployment
 path are stable and tested, but this is not yet a v1.0 commitment (see
-[Roadmap](docs/roadmap.md) for what v1.0 requires).
+[Roadmap](docs/roadmap/roadmap.md) for what v1.0 requires).
 
 ### Added
 - **Inventory management** — devices, bandwidth caps, and subnets with
   full CRUD, search, sort, pagination, and Excel import/export.
 - **Dynamic tags** with subnet-based inheritance, and a Network Tree
   spatial diagram (currently only in the legacy frontend — see
-  [Features § Network Tree](docs/features.md#network-tree)).
+  [Features § Network Tree](docs/getting-started/features.md#network-tree)).
 - **Enterprise authentication & RBAC** — Argon2id password hashing, JWT
   access tokens with rotating refresh tokens, TOTP MFA, API keys,
   permission-code authorization, an IP-based Access Policy Engine, and
@@ -45,7 +45,7 @@ path are stable and tested, but this is not yet a v1.0 commitment (see
 - Split the git repository from the release artifact: the repository
   stays source-only and lightweight; the prebuilt frontend and npm
   vendor binaries now ship only inside the release bundle. See
-  [Air-Gap Deployment § Repository vs. release artifact](docs/airgap.md#repository-vs-release-artifact).
+  [Air-Gap Deployment § Repository vs. release artifact](docs/deployment/airgap.md#repository-vs-release-artifact).
 - Repository cleanup: removed committed runtime database/WAL files,
   fixed a `README.md` case-sensitivity issue, removed an orphaned
   duplicate roadmap file, hardened `.gitignore` against common

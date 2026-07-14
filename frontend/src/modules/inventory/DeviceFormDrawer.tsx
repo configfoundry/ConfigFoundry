@@ -25,11 +25,15 @@ interface DeviceFormDrawerProps {
 
 const ICMP_TYPES = new Set(['icmp', 'snmp trap', 'storage'])
 
+/** Supported device vendors. Extend this list as more platforms are onboarded. */
+export const DEVICE_VENDORS = ['Arista', 'Cisco', 'Palo Alto'] as const
+
 export function DeviceFormDrawer({ open, device, onClose, onSave, saving }: DeviceFormDrawerProps) {
   const isNew = !device?.id
   const [form, setForm] = useState<Record<string, string>>({
     IP: device?.IP ?? '',
     Device: String(device?.Device ?? ''),
+    'Device Vendor': String(device?.['Device Vendor'] ?? ''),
     'Collector Region': String(device?.['Collector Region'] ?? ''),
     'Config Type': String(device?.['Config Type'] ?? ''),
     snmpUser: String(device?.snmpUser ?? ''),
@@ -64,7 +68,7 @@ export function DeviceFormDrawer({ open, device, onClose, onSave, saving }: Devi
           <Button onClick={onClose} color="inherit">
             Cancel
           </Button>
-          <Button onClick={handleSave} variant="contained" disabled={!form.IP || saving}>
+          <Button onClick={handleSave} variant="contained" disabled={!form.IP || !form['Device Vendor'] || saving}>
             {isNew ? 'Add' : 'Save'}
           </Button>
         </>
@@ -78,9 +82,26 @@ export function DeviceFormDrawer({ open, device, onClose, onSave, saving }: Devi
           <CustomTextField label="Device Name" fullWidth value={form.Device} onChange={(e) => set('Device', e.target.value)} />
         </Grid>
         <Grid item xs={12} sm={6}>
+          <CustomTextField
+            select
+            required
+            fullWidth
+            label="Device Vendor"
+            value={form['Device Vendor']}
+            onChange={(e) => set('Device Vendor', e.target.value)}
+          >
+            <MenuItem value="">— select —</MenuItem>
+            {DEVICE_VENDORS.map((v) => (
+              <MenuItem key={v} value={v}>
+                {v}
+              </MenuItem>
+            ))}
+          </CustomTextField>
+        </Grid>
+        <Grid item xs={12} sm={6}>
           <CustomTextField label="Collector Region" fullWidth value={form['Collector Region']} onChange={(e) => set('Collector Region', e.target.value)} />
         </Grid>
-        <Grid item xs={12}>
+        <Grid item xs={12} sm={6}>
           <CustomTextField
             select
             fullWidth

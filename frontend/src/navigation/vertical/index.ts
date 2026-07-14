@@ -180,7 +180,7 @@ const RAW_SECTIONS: RawSection[] = [
         icon: 'tabler:file-code',
         permission: 'deployment:execute',
         items: [
-          { href: '/configuration/generate', label: 'Generate Configuration', icon: 'tabler:wand', countKey: null, permission: 'deployment:execute' },
+          { href: '/configuration/generate', label: 'Monitoring Platforms', icon: 'tabler:wand', countKey: null, permission: 'deployment:execute' },
           { href: '/configuration/generated', label: 'Generated Files', icon: 'tabler:files', countKey: null, permission: 'deployment:execute' },
           { href: '/configuration/deployment-history', label: 'Export History', icon: 'tabler:clock-play', countKey: null, permission: 'deployment:execute' },
           { label: 'Deploy', icon: 'tabler:rocket', countKey: null, permission: null, badge: 'Soon' },
@@ -236,7 +236,8 @@ export const PAGE_TITLES: Record<string, string> = {
   '/validation/run': 'Run Validation',
   '/validation/findings': 'Findings',
   '/validation/history': 'History',
-  '/configuration/generate': 'Generate Configuration',
+  '/configuration/generate': 'Monitoring Platforms',
+  '/configuration/generate/datadog': 'Datadog',
   '/configuration/generated': 'Generated Files',
   '/configuration/deployment-history': 'Export History',
   '/administration/users': 'Users',

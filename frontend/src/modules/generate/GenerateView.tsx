@@ -9,19 +9,35 @@
  * step renders its own content, and there is exactly one primary action
  * per step.
  *
+ * Findings pass (this revision): the old layout showed the same facts up
+ * to three times -- a raw missingRegionDevices banner, a raw
+ * missingCredsDevices banner, and a "N errors -- msg1; msg2 and N more"
+ * banner built from result.findings -- because core/logic.py's
+ * missingRegionDevices/missingCredsDevices and core/validator.py's
+ * DEVICE_NO_REGION/DEVICE_MISSING_CREDS findings describe the exact same
+ * underlying facts (confirmed by reading both). result.findings is now the
+ * single source of truth, rendered with the same grouped-Accordion +
+ * FindingsTimeline + FindingDetailDialog components the Validation module
+ * already uses (modules/validation/findingGroups.ts et al.) -- same
+ * pattern the user sees when they run Validation directly, not a
+ * one-off. The alert severities render as translucent tinted panels (via
+ * the shared theme's MuiAlert override), not solid pastel fills, so they
+ * hold up in both light and dark mode.
+ *
  * Business logic is 100% unchanged from the previous version:
  *  - Same api.generate() call (server-side generation + validation).
  *  - Same query invalidation on success (['meta'], ['history']).
- *  - Same missingRegionDevices / missingCredsDevices / findings banners.
  *  - Same client-side Blob download for individual files and "download all".
- *  - Same Diff Viewer (api.getHistory(1) + api.getHistoryEntry(id)), same
+ *  - Same Diff Viewer (api.getHistory + api.getHistoryEntry), same
  *    Generation Log built from result fields only, same Breakdown by Region
  *    table, same confirm-before-download-with-issues dialog.
  *
  * Step 1 Review Inventory reads live /meta counts and the shared
  * validation-result cache (see modules/validation/useValidationResult.ts)
  * so a validation run from the Validation section shows up here too,
- * without a second validation call.
+ * without a second validation call. Its stat tiles now use the shared
+ * StatCard component (components/common/StatCard.tsx) for visual parity
+ * with the Dashboard's KPI tiles instead of bare Typography.
  *
  * Step 3 Export's "Download All" produces one browser download per file,
  * not a single .zip -- there is no zip-creation dependency in this project
@@ -31,7 +47,7 @@
  * deploy/deployment endpoint anywhere in api.ts) and is shown as an
  * informational, disabled action rather than invented.
  */
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Box from '@mui/material/Box'
@@ -60,16 +76,37 @@ import Switch from '@mui/material/Switch'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Chip from '@mui/material/Chip'
 import Tooltip from '@mui/material/Tooltip'
+import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
+import RouterOutlinedIcon from '@mui/icons-material/RouterOutlined'
+import SpeedOutlinedIcon from '@mui/icons-material/SpeedOutlined'
+import LanOutlinedIcon from '@mui/icons-material/LanOutlined'
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import Icon from '@/@core/components/icon'
 import { api } from '@/lib/api'
-import type { GenerateResult } from '@/lib/types'
+import type { GenerateResult, HistoryEntry, Finding } from '@/lib/types'
 import { useToast } from '@/components/ui/Toast'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
+import { StatCard } from '@/components/common/StatCard'
 import { useValidationResult } from '@/modules/validation/useValidationResult'
+import { FindingsTimeline } from '@/modules/validation/FindingsTimeline'
+import { FindingDetailDialog } from '@/modules/validation/FindingDetailDialog'
+import { SEVERITY_META, GROUP_META, groupFindings, type GroupKey } from '@/modules/validation/findingGroups'
 import { CodeViewer } from './CodeViewer'
 import { DiffViewer } from './DiffViewer'
+
+function fmtTs(ts: string) {
+  try {
+    return new Date(ts).toLocaleString(undefined, {
+      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+    })
+  } catch {
+    return ts
+  }
+}
 
 function downloadBlob(filename: string, content: string) {
   const blob = new Blob([content], { type: 'text/yaml' })
@@ -82,6 +119,7 @@ function downloadBlob(filename: string, content: string) {
 }
 
 const STEPS = ['Review Inventory', 'Generate Configuration', 'Export']
+const GROUP_ORDER: GroupKey[] = ['device', 'bandwidth', 'network', 'other']
 
 export function GenerateView() {
   const qc = useQueryClient()
@@ -93,18 +131,33 @@ export function GenerateView() {
   const [diffMode, setDiffMode] = useState(false)
   const [genStart, setGenStart] = useState<number | null>(null)
   const [genEnd, setGenEnd] = useState<number | null>(null)
+  const [findingsFilter, setFindingsFilter] = useState<'' | 'error' | 'warning'>('')
+  const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null)
 
   const { data: meta } = useQuery({ queryKey: ['meta'], queryFn: () => api.getMeta() })
   const validationResult = useValidationResult()
 
-  // Most recent History entry -- used only to power the Diff Viewer.
-  const { data: recentHistory } = useQuery({ queryKey: ['history', 1], queryFn: () => api.getHistory(1) })
-  const previousEntryId = recentHistory?.entries?.[0]?.id
+  // Recent History entries -- powers both "history for every generated
+  // config" browsing and the Diff Viewer's "compare against" picker.
+  const { data: historyList } = useQuery({ queryKey: ['history', 25], queryFn: () => api.getHistory(25) })
+
+  // Snapshot of history entries taken *before* the run currently being
+  // generated. GET /generate persists its own result to yaml_history before
+  // returning, so re-querying "most recent" after a generate would just
+  // return the run comparing itself against itself. Freezing the pre-run
+  // list here (via a ref, set synchronously in the click handler below)
+  // sidesteps that race entirely -- the picker only ever offers entries
+  // that existed *before* the current result.
+  const preGenerateEntriesRef = useRef<HistoryEntry[]>([])
+  const [compareOptions, setCompareOptions] = useState<HistoryEntry[]>([])
+  const [compareEntryId, setCompareEntryId] = useState<string | undefined>(undefined)
+
   const { data: previousDetail } = useQuery({
-    queryKey: ['history-detail', previousEntryId],
-    queryFn: () => api.getHistoryEntry(previousEntryId as string),
-    enabled: !!previousEntryId && diffMode,
+    queryKey: ['history-detail', compareEntryId],
+    queryFn: () => api.getHistoryEntry(compareEntryId as string),
+    enabled: !!compareEntryId && diffMode,
   })
+  const compareEntry = compareOptions.find((e) => e.id === compareEntryId)
 
   const {
     mutate: runGenerate,
@@ -116,6 +169,10 @@ export function GenerateView() {
     onSuccess: (res) => {
       setResult(res)
       setGenEnd(Date.now())
+      setFindingsFilter('')
+      const priorEntries = preGenerateEntriesRef.current
+      setCompareOptions(priorEntries)
+      setCompareEntryId(priorEntries[0]?.id)
       qc.invalidateQueries({ queryKey: ['meta'] })
       qc.invalidateQueries({ queryKey: ['history'] })
       const fileCount = Object.keys(res.files ?? {}).length
@@ -128,15 +185,23 @@ export function GenerateView() {
     onError: (e) => toast((e as Error).message, 'error'),
   })
 
+  function handleGenerate() {
+    preGenerateEntriesRef.current = historyList?.entries ?? []
+    runGenerate()
+  }
+
   function downloadAll() {
     if (!result) return
     Object.entries(result.files ?? {}).forEach(([name, content]) => downloadBlob(name, content))
   }
 
   const files = Object.entries(result?.files ?? {})
-  const errorFindings = result?.findings?.filter((f) => f.severity === 'error') ?? []
-  const warnFindings = result?.findings?.filter((f) => f.severity === 'warning') ?? []
+  const findings = result?.findings ?? []
+  const errorFindings = findings.filter((f) => f.severity === 'error')
+  const warnFindings = findings.filter((f) => f.severity === 'warning')
   const hasIssues = errorFindings.length > 0 || warnFindings.length > 0
+  const filteredFindings = findingsFilter ? findings.filter((f) => f.severity === findingsFilter) : findings
+  const groupedFindings = groupFindings(filteredFindings)
 
   // A step is reachable once its prerequisite is satisfied: Generate needs
   // nothing (Review is informational), Export needs a result to exist.
@@ -177,22 +242,18 @@ export function GenerateView() {
           <CardHeader title="Inventory summary" subheader="What will be included when you generate configuration." />
           <Divider />
           <CardContent>
-            <Grid container spacing={4} sx={{ mb: 4 }}>
+            <Grid container spacing={3} sx={{ mb: 4 }}>
               <Grid item xs={6} sm={3}>
-                <Typography variant="overline" color="text.secondary">Devices</Typography>
-                <Typography variant="h5">{meta?.deviceCount ?? '—'}</Typography>
+                <StatCard label="Devices" value={meta?.deviceCount ?? '—'} icon={RouterOutlinedIcon} color="primary" />
               </Grid>
               <Grid item xs={6} sm={3}>
-                <Typography variant="overline" color="text.secondary">Bandwidth Profiles</Typography>
-                <Typography variant="h5">{meta?.bandwidthCount ?? '—'}</Typography>
+                <StatCard label="Bandwidth Profiles" value={meta?.bandwidthCount ?? '—'} icon={SpeedOutlinedIcon} color="info" />
               </Grid>
               <Grid item xs={6} sm={3}>
-                <Typography variant="overline" color="text.secondary">Subnets</Typography>
-                <Typography variant="h5">{meta?.subnetCount ?? '—'}</Typography>
+                <StatCard label="Subnets" value={meta?.subnetCount ?? '—'} icon={LanOutlinedIcon} color="success" />
               </Grid>
               <Grid item xs={6} sm={3}>
-                <Typography variant="overline" color="text.secondary">Templates</Typography>
-                <Chip size="small" variant="outlined" label="No backend yet" />
+                <StatCard label="Templates" value="—" sub="Coming soon" icon={DescriptionOutlinedIcon} color="secondary" />
               </Grid>
             </Grid>
 
@@ -242,9 +303,29 @@ export function GenerateView() {
           <Card>
             <CardHeader
               title="Generate Configuration"
-              subheader={meta ? `${meta.deviceCount} devices · ${meta.bandwidthCount} bandwidth rows · ${meta.subnetCount} subnets` : 'Loading inventory summary…'}
+              subheader={
+                result ? (
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                    <Chip size="small" variant="outlined" label={`${files.length} file${files.length !== 1 ? 's' : ''}`} />
+                    <Chip size="small" variant="outlined" label={`${result.snmpTotal ?? 0} SNMP · ${result.icmpTotal ?? 0} ICMP`} />
+                    {errorFindings.length > 0 && (
+                      <Chip size="small" color="error" label={`${errorFindings.length} error${errorFindings.length !== 1 ? 's' : ''}`} />
+                    )}
+                    {warnFindings.length > 0 && (
+                      <Chip size="small" color="warning" label={`${warnFindings.length} warning${warnFindings.length !== 1 ? 's' : ''}`} />
+                    )}
+                    {errorFindings.length === 0 && warnFindings.length === 0 && (
+                      <Chip size="small" color="success" icon={<CheckCircleOutlinedIcon sx={{ fontSize: 16 }} />} label="No issues" />
+                    )}
+                  </Stack>
+                ) : meta ? (
+                  `${meta.deviceCount} devices · ${meta.bandwidthCount} bandwidth rows · ${meta.subnetCount} subnets`
+                ) : (
+                  'Loading inventory summary…'
+                )
+              }
               action={
-                <Button variant="contained" startIcon={<Icon icon="tabler:wand" />} onClick={() => runGenerate()} disabled={isPending}>
+                <Button variant="contained" startIcon={<Icon icon="tabler:wand" />} onClick={handleGenerate} disabled={isPending}>
                   {isPending ? 'Generating…' : 'Generate Configuration'}
                 </Button>
               }
@@ -269,29 +350,86 @@ export function GenerateView() {
 
           {result && !isPending && (
             <>
-              {(result.missingRegionDevices?.length ?? 0) > 0 && (
-                <Alert severity="error">
-                  <strong>{result.missingRegionDevices!.length}</strong> device{result.missingRegionDevices!.length !== 1 ? 's' : ''} have no
-                  Collector Region and were <strong>excluded</strong> from every output file.
-                </Alert>
-              )}
-              {(result.missingCredsDevices?.length ?? 0) > 0 && (
-                <Alert severity="warning">
-                  <strong>{result.missingCredsDevices!.length}</strong> device{result.missingCredsDevices!.length !== 1 ? 's' : ''} are missing
-                  SNMPv3 credentials and were still included in the output.
-                </Alert>
-              )}
-              {errorFindings.length > 0 && (
-                <Alert severity="error">
-                  <strong>{errorFindings.length}</strong> error{errorFindings.length !== 1 ? 's' : ''} — {errorFindings.slice(0, 2).map((f) => f.message).join('; ')}
-                  {errorFindings.length > 2 && ` and ${errorFindings.length - 2} more`}.
-                </Alert>
-              )}
-              {warnFindings.length > 0 && (
-                <Alert severity="warning">
-                  <strong>{warnFindings.length}</strong> warning{warnFindings.length !== 1 ? 's' : ''} detected.
-                </Alert>
-              )}
+              <Card variant="outlined">
+                <CardContent>
+                  {errorFindings.length === 0 && warnFindings.length === 0 ? (
+                    <Alert severity="success" icon={<CheckCircleOutlinedIcon fontSize="inherit" />}>
+                      Generated cleanly -- no errors or warnings found.
+                    </Alert>
+                  ) : (
+                    <Alert severity={errorFindings.length > 0 ? 'error' : 'warning'}>
+                      {errorFindings.length > 0 && (
+                        <>
+                          <strong>{errorFindings.length}</strong> error{errorFindings.length !== 1 ? 's' : ''}
+                          {warnFindings.length > 0 ? ' · ' : ' '}
+                        </>
+                      )}
+                      {warnFindings.length > 0 && (
+                        <>
+                          <strong>{warnFindings.length}</strong> warning{warnFindings.length !== 1 ? 's' : ''}{' '}
+                        </>
+                      )}
+                      found -- review before exporting.
+                    </Alert>
+                  )}
+
+                  {findings.length > 0 && (
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 2.5 }}>
+                      <Chip
+                        label={`All (${findings.length})`}
+                        size="small"
+                        onClick={() => setFindingsFilter('')}
+                        color={findingsFilter === '' ? 'primary' : 'default'}
+                        variant={findingsFilter === '' ? 'filled' : 'outlined'}
+                      />
+                      {errorFindings.length > 0 && (
+                        <Chip
+                          label={`${SEVERITY_META.error.label} (${errorFindings.length})`}
+                          size="small"
+                          onClick={() => setFindingsFilter('error')}
+                          color="error"
+                          variant={findingsFilter === 'error' ? 'filled' : 'outlined'}
+                        />
+                      )}
+                      {warnFindings.length > 0 && (
+                        <Chip
+                          label={`${SEVERITY_META.warning.label} (${warnFindings.length})`}
+                          size="small"
+                          onClick={() => setFindingsFilter('warning')}
+                          color="warning"
+                          variant={findingsFilter === 'warning' ? 'filled' : 'outlined'}
+                        />
+                      )}
+                    </Stack>
+                  )}
+
+                  {findings.length > 0 && (
+                    <Stack spacing={1.5} sx={{ mt: 2.5 }}>
+                      {GROUP_ORDER.map((key) => {
+                        const items = groupedFindings[key]
+                        if (items.length === 0) return null
+                        const groupMeta = GROUP_META[key]
+                        return (
+                          <Accordion key={key} defaultExpanded variant="outlined" disableGutters>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <Stack direction="row" spacing={1.5} alignItems="center">
+                                <Typography variant="subtitle2" fontWeight={600}>{groupMeta.label}</Typography>
+                                <Chip label={items.length} size="small" />
+                                {groupMeta.hint && (
+                                  <Typography variant="caption" color="text.secondary">{groupMeta.hint}</Typography>
+                                )}
+                              </Stack>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                              <FindingsTimeline findings={items} onSelect={setSelectedFinding} />
+                            </AccordionDetails>
+                          </Accordion>
+                        )
+                      })}
+                    </Stack>
+                  )}
+                </CardContent>
+              </Card>
 
               <Accordion variant="outlined" disableGutters>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -341,34 +479,58 @@ export function GenerateView() {
               {files.length === 0 ? (
                 <EmptyState title="No files generated" sub="The inventory may be empty or no devices matched the generation criteria." />
               ) : (
-                <Box>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-                    <Typography variant="subtitle2" fontWeight={600}>Preview -- {files.length} file{files.length !== 1 ? 's' : ''}</Typography>
-                    {previousEntryId && (
-                      <FormControlLabel
-                        control={<Switch size="small" checked={diffMode} onChange={(e) => setDiffMode(e.target.checked)} />}
-                        label={<Typography variant="caption">Compare to previous run</Typography>}
-                      />
-                    )}
-                  </Stack>
-                  <Stack spacing={2}>
-                    {files.map(([name, content]) => {
-                      const prevContent = previousDetail?.files?.[name]
-                      return (
-                        <Box key={name}>
-                          <Typography variant="body2" fontWeight={600} sx={{ fontFamily: 'monospace', mb: 0.75 }}>{name}</Typography>
-                          {diffMode && prevContent !== undefined ? (
-                            <DiffViewer oldContent={prevContent} newContent={content} />
-                          ) : diffMode ? (
-                            <Alert severity="info">No previous version of this file to compare against.</Alert>
-                          ) : (
-                            <CodeViewer filename={name} content={content} maxHeight={220} />
+                <Card variant="outlined">
+                  <CardContent>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" useFlexGap spacing={1.5} sx={{ mb: 2 }}>
+                      <Typography variant="subtitle2" fontWeight={600}>Preview -- {files.length} file{files.length !== 1 ? 's' : ''}</Typography>
+                      {compareOptions.length > 0 && (
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                          <FormControlLabel
+                            control={<Switch size="small" checked={diffMode} onChange={(e) => setDiffMode(e.target.checked)} />}
+                            label={<Typography variant="caption">Diff checker</Typography>}
+                          />
+                          {diffMode && (
+                            <TextField
+                              select
+                              size="small"
+                              label="Compare against"
+                              value={compareEntryId ?? ''}
+                              onChange={(e) => setCompareEntryId(e.target.value)}
+                              sx={{ minWidth: 260 }}
+                            >
+                              {compareOptions.map((entry, i) => (
+                                <MenuItem key={entry.id} value={entry.id}>
+                                  {i === 0 ? 'Previous run — ' : ''}{fmtTs(entry.ts)}{entry.summary ? ` — ${entry.summary}` : ''}
+                                </MenuItem>
+                              ))}
+                            </TextField>
                           )}
-                        </Box>
-                      )
-                    })}
-                  </Stack>
-                </Box>
+                        </Stack>
+                      )}
+                    </Stack>
+                    <Stack spacing={2}>
+                      {files.map(([name, content]) => {
+                        const prevContent = previousDetail?.files?.[name]
+                        return (
+                          <Box key={name}>
+                            <Typography variant="body2" fontWeight={600} sx={{ fontFamily: 'monospace', mb: 0.75 }}>{name}</Typography>
+                            {diffMode && prevContent !== undefined ? (
+                              <DiffViewer
+                                oldContent={prevContent}
+                                newContent={content}
+                                oldLabel={compareEntry ? fmtTs(compareEntry.ts) : 'previous run'}
+                              />
+                            ) : diffMode ? (
+                              <Alert severity="info">This file didn&apos;t exist in the selected run -- nothing to compare.</Alert>
+                            ) : (
+                              <CodeViewer filename={name} content={content} maxHeight={220} />
+                            )}
+                          </Box>
+                        )
+                      })}
+                    </Stack>
+                  </CardContent>
+                </Card>
               )}
 
               <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -447,6 +609,8 @@ export function GenerateView() {
         onConfirm={downloadAll}
         onClose={() => setConfirmDownloadAll(false)}
       />
+
+      <FindingDetailDialog finding={selectedFinding} onClose={() => setSelectedFinding(null)} />
     </Stack>
   )
 }

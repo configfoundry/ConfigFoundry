@@ -14,7 +14,7 @@ feature or reduce functionality** to make something else cleaner.
 For the full guide — reporting bugs, proposing changes, what gets
 prioritized in review, codebase-specific gotchas, and how to add a new
 permission/storage provider/integration — see
-[docs/contributing.md](docs/contributing.md).
+[docs/contributing.md](docs/development/contributing.md).
 
 Security issues should not be reported as public GitHub issues — see
 [SECURITY.md](SECURITY.md).

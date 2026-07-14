@@ -11,7 +11,7 @@ Responsibilities
 """
 from typing import Optional
 
-from core.logic import is_valid_ip
+from core.domain.helpers import is_valid_ip
 from core.repositories.interfaces import IDeviceRepository, IAuditRepository
 
 
@@ -51,7 +51,7 @@ class DeviceService:
         Dynamic tag preservation
         ------------------------
         Editing a device must never destroy dynamic tag values ("tags",
-        keyed by TagDef id -- see core/logic.py's resolve_tags_for_record)
+        keyed by TagDef id -- see core/domain/helpers.py's resolve_tags_for_record)
         that the caller's edit form doesn't expose. DeviceFormDrawer, for
         example, never submits a `tags` field at all, and the repository
         layer replaces the entire stored JSON document on upsert (it does

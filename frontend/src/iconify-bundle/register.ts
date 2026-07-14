@@ -1,12 +1,16 @@
 'use client'
 
 // ---------------------------------------------------------------------------
-// Registers the offline tabler icon subset (see scripts/generate-icon-bundle.mjs)
-// with @iconify/react's internal icon storage. Importing this file for its
-// side effect is enough -- once addCollection() runs, every <Icon icon="tabler:x" />
+// Registers the offline icon subsets (see scripts/generate-icon-bundle.mjs
+// and scripts/generate-logos-icon-bundle.mjs) with @iconify/react's internal
+// icon storage. Importing this file for its side effect is enough -- once
+// addCollection() runs, every <Icon icon="tabler:x" /> or <Icon icon="logos:x" />
 // in the app resolves from memory instead of calling out to
 // api.iconify.design / api.unisvg.com / api.simplesvg.com, which the backend's
-// CSP (connect-src 'self') blocks anyway.
+// CSP (connect-src 'self') blocks anyway. logos-icons.json carries the
+// official Datadog/Prometheus/Zabbix brand marks used on the Monitoring
+// Platforms hub (ADR-0008) -- bundled locally for the same air-gap reason
+// (ADR-0003), not fetched from a live logo CDN.
 //
 // 'use client' is required here: @iconify/react ships a React class component
 // internally, and app/layout.tsx (which imports this file) is a Server
@@ -21,5 +25,7 @@
 // ---------------------------------------------------------------------------
 import { addCollection } from '@iconify/react'
 import tablerIcons from './tabler-icons.json'
+import logosIcons from './logos-icons.json'
 
 addCollection(tablerIcons)
+addCollection(logosIcons)

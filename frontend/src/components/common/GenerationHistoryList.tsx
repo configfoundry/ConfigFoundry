@@ -155,7 +155,7 @@ export function GenerationHistoryList({
           onPrimary={() => router.push('/configuration/generate')}
           secondaryLabel="Review Infrastructure"
           onSecondary={() => router.push('/infrastructure/devices')}
-          docsHref="/documentation/configuration"
+          docsHref="/documentation/reference/configuration"
         />
       </Card>
     )

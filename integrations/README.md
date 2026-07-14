@@ -22,9 +22,11 @@ never know about integrations.
 
 ### 3. Integrations may import core
 
-An integration is allowed to call `core.storage`, `core.logic`, `formats.yamldump`,
+An integration is allowed to call `core.storage`, `core.domain`, `formats.yamldump`,
 or any other core module. It reads from the inventory; it does not write back
 to it except through the documented storage API (`storage.upsert_device`, etc.).
+It must never import from `core.platforms/<a specific platform>` -- that logic
+is owned by this project's own Platform Adapters, not integrations.
 
 ### 4. Integrations may use third-party libraries
 

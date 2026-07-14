@@ -3,7 +3,7 @@ Bandwidth service — business logic for bandwidth cap CRUD operations.
 """
 from typing import Optional
 
-from core.logic import is_valid_ip
+from core.domain.helpers import is_valid_ip
 from core.repositories.interfaces import IBandwidthRepository, IAuditRepository
 
 

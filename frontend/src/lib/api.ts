@@ -33,6 +33,7 @@ import type {
   Meta,
   NetworkACLRule,
   Permission,
+  Platform,
   Role,
   SecurityAuditEntry,
   SessionInfo,
@@ -208,8 +209,13 @@ export const api = {
   setList: (name: string, items: string[], actor?: string) =>
     request<{ items: string[] }>('POST', `/lists/${encodeURIComponent(name)}`, { items, _actor: actor }),
 
-  // Generate
-  generate: (actor?: string) => request<GenerateResult>('POST', '/generate', { _actor: actor }),
+  // Platforms
+  getPlatforms: () => request<Platform[]>('GET', '/platforms'),
+
+  // Generate -- platform defaults to "datadog" server-side too; passed
+  // explicitly here so a future platform picker just changes this call site.
+  generate: (actor?: string, platform = 'datadog') =>
+    request<GenerateResult>('POST', '/generate', { _actor: actor, platform }),
 
   // History
   getHistory: (limit = 50) => request<HistoryListResponse>('GET', `/history?limit=${limit}`),

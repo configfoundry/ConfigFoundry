@@ -17,7 +17,7 @@ using today.
 
 **Relevant context**
 - Does this touch the security layer, storage abstraction, or the
-  air-gap guarantees? See [docs/architecture.md](../../docs/architecture.md)
-  and [docs/roadmap.md](../../docs/roadmap.md) (deliberately-out-of-scope
+  air-gap guarantees? See [docs/architecture.md](../../docs/architecture/architecture.md)
+  and [docs/roadmap.md](../../docs/roadmap/roadmap.md) (deliberately-out-of-scope
   items are listed there — check before proposing).
-- Is this already planned? See [docs/roadmap.md](../../docs/roadmap.md).
+- Is this already planned? See [docs/roadmap.md](../../docs/roadmap/roadmap.md).

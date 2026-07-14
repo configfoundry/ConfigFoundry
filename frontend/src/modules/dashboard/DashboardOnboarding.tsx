@@ -135,7 +135,7 @@ export function DashboardOnboarding({ hasHistory }: Props) {
           <Button variant="contained" startIcon={<Icon icon="tabler:upload" />} onClick={() => router.push('/infrastructure/devices')}>
             Import Infrastructure
           </Button>
-          <Button variant="outlined" component={Link} href="/documentation/getting-started">
+          <Button variant="outlined" component={Link} href="/documentation/getting-started/getting-started">
             Sample Inventory
           </Button>
           <Button variant="text" component={Link} href="/documentation" endIcon={<Icon icon="tabler:arrow-right" />}>

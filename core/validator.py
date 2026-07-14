@@ -48,7 +48,7 @@ SUBNET_OVERLAP     — intentional CIDR hierarchies make this ambiguous.
 """
 import ipaddress
 
-from core.logic import is_valid_ip, has_full_creds, should_be_icmp_only
+from core.domain.helpers import is_valid_ip, has_full_creds, should_be_icmp_only
 
 # Maximum entity names to list inline before switching to "… and N more".
 _INLINE_LIMIT = 5

@@ -10,6 +10,7 @@ Every endpoint in v1 is registered here under the ``/v1`` prefix.
     /api/v1/tags
     /api/v1/lists
     /api/v1/generate
+    /api/v1/platforms
     /api/v1/audit
     /api/v1/history
     /api/v1/meta
@@ -37,6 +38,7 @@ from api.v1 import (
     history,
     lists,
     meta,
+    platforms,
     policies,
     roles,
     subnets,
@@ -55,6 +57,7 @@ router.include_router(subnets.router,   tags=["subnets"])
 router.include_router(tags.router,      tags=["tags"])
 router.include_router(lists.router,     tags=["lists"])
 router.include_router(generate.router,  tags=["generate"])
+router.include_router(platforms.router, tags=["platforms"])
 router.include_router(audit.router,     tags=["audit"])
 router.include_router(history.router,   tags=["history"])
 router.include_router(meta.router,      tags=["meta"])

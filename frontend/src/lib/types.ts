@@ -7,6 +7,7 @@ export interface Device {
   id: string
   IP: string
   Device?: string
+  'Device Vendor'?: string
   'Collector Region'?: string
   'Config Type'?: string
   snmpUser?: string
@@ -17,10 +18,11 @@ export interface Device {
   Remarks?: string
   /** Dynamic tag values, keyed by TagDef id (NOT name) -- guaranteed present
    *  (defaults to {}) by core/repositories/sqlite/base.py's row.setdefault
-   *  on every write. Matches core/logic.py's resolve_tags_for_record, which
-   *  reads record.get("tags", {}).get(tagDef.id). Previously only covered
-   *  by the catch-all index signature below; typed explicitly here since
-   *  the Device Details page reads it directly. */
+   *  on every write. Matches core/domain/helpers.py's resolve_tags_for_record
+   *  (moved from core/logic.py in the ADR-0008 platform-adapter refactor),
+   *  which reads record.get("tags", {}).get(tagDef.id). Previously only
+   *  covered by the catch-all index signature below; typed explicitly here
+   *  since the Device Details page reads it directly. */
   tags?: Record<string, string>
   // Dynamic tag keys
   [key: string]: unknown
@@ -100,7 +102,9 @@ export interface Finding {
 
 /**
  * Generation group statistics keyed by normalised group key.
- * Matches what core/logic.py returns under "groupStats".
+ * Matches what GET /api/v1/generate returns under "groupStats" -- computed
+ * once on the vendor-neutral MonitoringConfiguration (core/domain/), so
+ * this shape is the same regardless of which platform was generated.
  */
 export type GroupStats = Record<string, {
   snmp_count: number
@@ -126,6 +130,25 @@ export interface GenerateResult {
   skippedDevices?: number
   /** Bandwidth rows with no matching device */
   orphanedBwIps?: string[]
+}
+
+/**
+ * A monitoring platform, as returned by GET /api/v1/platforms
+ * (core/platforms/registry.py). The hub (src/modules/platforms/PlatformsView.tsx)
+ * renders one card per entry -- adding a platform to the backend registry is
+ * enough to make a new card appear here, no frontend change required.
+ */
+export interface Platform {
+  id: string
+  name: string
+  description?: string
+  status: 'supported' | 'coming_soon'
+  version?: string
+  icon: string
+  supportsGeneration?: boolean
+  supportsDeployment?: boolean
+  supportsValidation?: boolean
+  supportsVerification?: boolean
 }
 
 /** Compact history entry from GET /api/v1/history */
