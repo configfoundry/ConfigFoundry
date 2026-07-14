@@ -45,20 +45,86 @@ function escapeHtml(s: string): string {
     .replace(/'/g, '&#39;')
 }
 
-function rewriteHref(hrefRaw: string): { href: string; external: boolean } {
+const GITHUB_REPO = 'https://github.com/configfoundry/ConfigFoundry'
+const GITHUB_BLOB = `${GITHUB_REPO}/blob/main/`
+
+/**
+ * Resolves a relative link (as written inside a docs/**\/*.md file) into a
+ * repo-root-relative path, treating `docs/<baseDir>/` as the starting
+ * directory -- so `../security/rbac.md` from `docs/architecture/` resolves
+ * to `docs/security/rbac.md`, `../../CHANGELOG.md` resolves to
+ * `CHANGELOG.md` (repo root), etc. `..` past the repo root is simply
+ * absorbed (stays at root), matching normal filesystem path semantics --
+ * this is deliberately permissive rather than throwing, since a stray
+ * extra `../` in hand-written docs shouldn't crash the build.
+ */
+function resolveRepoPath(baseDir: string, relative: string): string {
+  const stack: string[] = ['docs', ...(baseDir ? baseDir.split('/') : [])]
+  for (const part of relative.split('/')) {
+    if (part === '' || part === '.') continue
+    if (part === '..') {
+      if (stack.length) stack.pop()
+      continue
+    }
+    stack.push(part)
+  }
+  return stack.join('/')
+}
+
+/**
+ * Rewrites a Markdown link target into what it should actually point at
+ * inside the rendered app. `baseDir` is the current document's own
+ * directory within docs/ (e.g. "architecture", "reference/features") --
+ * required to correctly resolve relative links now that docs/ is a nested
+ * tree rather than one flat directory (see the doc reorganization this
+ * accompanies).
+ *
+ * - http(s)/mailto -> left alone, opens in a new tab.
+ * - "#heading" (same-page) -> left alone.
+ * - "/..." (already an app-absolute path) -> left alone.
+ * - A relative link that resolves to a real docs/<category>/... page ->
+ *   rewritten to /documentation/<category>/.../ (in-app route). This
+ *   handles any link depth (multiple "../") and any filename, including
+ *   the space-containing filenames used throughout the reorganized docs/
+ *   subdirectories -- the previous version of this function only matched
+ *   a single "../" and word-character-only filenames, which silently
+ *   broke in-app navigation for most cross-category links after the
+ *   docs/ restructure (still fine on GitHub, which just follows the real
+ *   file path -- this was purely an in-app rendering bug).
+ * - A relative link that resolves into docs/internal/ (excluded from the
+ *   public viewer, see frontend/src/lib/docs.ts) or outside docs/
+ *   entirely (e.g. ../../CHANGELOG.md, ../../LICENSE) -> rewritten to a
+ *   GitHub blob link instead of an in-app route that would 404 (internal/
+ *   pages and non-docs repo files were never part of generateStaticParams).
+ */
+function rewriteHref(hrefRaw: string, baseDir: string): { href: string; external: boolean } {
   const href = hrefRaw.trim()
   if (/^https?:\/\//.test(href) || href.startsWith('mailto:')) {
     return { href, external: true }
   }
-  const mdMatch = href.match(/^(?:\.\.?\/)?([\w.-]+)\.md(#.*)?$/i)
-  if (mdMatch) {
-    const [, name, hash = ''] = mdMatch
-    if (name.toLowerCase() === 'readme') {
-      return { href: 'https://github.com/configfoundry/ConfigFoundry#readme', external: true }
-    }
-    return { href: `/documentation/${name.toLowerCase()}/${hash}`, external: false }
+  if (href.startsWith('#') || href.startsWith('/')) {
+    return { href, external: false }
   }
-  return { href, external: false }
+
+  const hashIdx = href.indexOf('#')
+  const pathPart = hashIdx === -1 ? href : href.slice(0, hashIdx)
+  const hash = hashIdx === -1 ? '' : href.slice(hashIdx)
+  if (!pathPart) {
+    return { href, external: false }
+  }
+
+  const resolved = resolveRepoPath(baseDir, pathPart)
+
+  if (resolved.toLowerCase() === 'readme.md') {
+    return { href: `${GITHUB_REPO}#readme`, external: true }
+  }
+  if (/\.md$/i.test(resolved) && resolved.startsWith('docs/') && !resolved.startsWith('docs/internal/')) {
+    const slug = resolved.slice('docs/'.length).replace(/\.md$/i, '')
+    return { href: `/documentation/${slug}/${hash}`, external: false }
+  }
+  // Outside the public docs/ route space (docs/internal/, or outside
+  // docs/ altogether) -- link out to GitHub instead of a broken route.
+  return { href: GITHUB_BLOB + resolved, external: true }
 }
 
 /**
@@ -69,7 +135,7 @@ function rewriteHref(hrefRaw: string): { href: string; external: boolean } {
  * asterisks, brackets, or plain numbers -- is ever misinterpreted as
  * bold/italic/link syntax.
  */
-function renderInline(raw: string): string {
+function renderInline(raw: string, baseDir: string): string {
   const codeSpans: string[] = []
   let text = raw.replace(/`([^`]+)`/g, (_m, code: string) => {
     codeSpans.push(`<code>${escapeHtml(code)}</code>`)
@@ -80,7 +146,7 @@ function renderInline(raw: string): string {
 
   // Links: [text](href)
   text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label: string, hrefRaw: string) => {
-    const { href, external } = rewriteHref(hrefRaw)
+    const { href, external } = rewriteHref(hrefRaw, baseDir)
     const attrs = external ? ' target="_blank" rel="noopener noreferrer"' : ''
     return `<a href="${escapeHtml(href)}"${attrs}>${label}</a>`
   })
@@ -244,7 +310,7 @@ const CALLOUT_ICONS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 let tabsCounter = 0
 
-function renderBlocks(lines: string[], headings: Heading[], usedIds: Set<string>): string {
+function renderBlocks(lines: string[], headings: Heading[], usedIds: Set<string>, baseDir: string): string {
   const out: string[] = []
   let i = 0
 
@@ -277,7 +343,7 @@ function renderBlocks(lines: string[], headings: Heading[], usedIds: Set<string>
         )
         .join('')
       const panels = tabs
-        .map((t) => `<div class="doc-tabs-panel">${renderBlocks(t.lines, headings, usedIds)}</div>`)
+        .map((t) => `<div class="doc-tabs-panel">${renderBlocks(t.lines, headings, usedIds, baseDir)}</div>`)
         .join('')
       out.push(
         `<div class="doc-tabs" data-tab-count="${tabs.length}">${inputs}` +
@@ -344,7 +410,7 @@ function renderBlocks(lines: string[], headings: Heading[], usedIds: Set<string>
         headings.push({ id, text: text.replace(/[`*]/g, ''), level })
       }
       out.push(
-        `<h${level} id="${id}">${renderInline(text)}` +
+        `<h${level} id="${id}">${renderInline(text, baseDir)}` +
           `<a href="#${id}" class="heading-anchor" aria-label="Link to this section">#</a></h${level}>`
       )
       i++
@@ -360,9 +426,9 @@ function renderBlocks(lines: string[], headings: Heading[], usedIds: Set<string>
         rows.push(splitTableRow(lines[i]))
         i++
       }
-      const thead = `<thead><tr>${header.map((h) => `<th>${renderInline(h)}</th>`).join('')}</tr></thead>`
+      const thead = `<thead><tr>${header.map((h) => `<th>${renderInline(h, baseDir)}</th>`).join('')}</tr></thead>`
       const tbody = `<tbody>${rows
-        .map((r) => `<tr>${r.map((c) => `<td>${renderInline(c)}</td>`).join('')}</tr>`)
+        .map((r) => `<tr>${r.map((c) => `<td>${renderInline(c, baseDir)}</td>`).join('')}</tr>`)
         .join('')}</tbody>`
       out.push(`<div class="table-wrap"><table class="docs-table">${thead}${tbody}</table></div>`)
       continue
@@ -390,10 +456,10 @@ function renderBlocks(lines: string[], headings: Heading[], usedIds: Set<string>
         out.push(
           `<div class="callout ${calloutType.cls}">` +
             `<div class="callout-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${CALLOUT_ICONS[type]}</svg>${calloutType.label}</div>` +
-            `<div class="callout-body">${renderBlocks(bodyLines, headings, usedIds)}</div></div>`
+            `<div class="callout-body">${renderBlocks(bodyLines, headings, usedIds, baseDir)}</div></div>`
         )
       } else {
-        out.push(`<blockquote>${renderInline(quoteLines.join(' '))}</blockquote>`)
+        out.push(`<blockquote>${renderInline(quoteLines.join(' '), baseDir)}</blockquote>`)
       }
       continue
     }
@@ -409,10 +475,10 @@ function renderBlocks(lines: string[], headings: Heading[], usedIds: Set<string>
         if (task) {
           const checked = task[1].toLowerCase() === 'x'
           items.push(
-            `<li class="task-item"><input type="checkbox" disabled${checked ? ' checked' : ''} /> ${renderInline(task[2])}</li>`
+            `<li class="task-item"><input type="checkbox" disabled${checked ? ' checked' : ''} /> ${renderInline(task[2], baseDir)}</li>`
           )
         } else {
-          items.push(`<li>${renderInline(content)}</li>`)
+          items.push(`<li>${renderInline(content, baseDir)}</li>`)
         }
         i++
       }
@@ -437,16 +503,22 @@ function renderBlocks(lines: string[], headings: Heading[], usedIds: Set<string>
       paraLines.push(lines[i])
       i++
     }
-    out.push(`<p>${renderInline(paraLines.join(' '))}</p>`)
+    out.push(`<p>${renderInline(paraLines.join(' '), baseDir)}</p>`)
   }
 
   return out.join('\n')
 }
 
-export function renderMarkdown(markdown: string): RenderedDoc {
+/**
+ * @param baseDir The current document's own directory within docs/ (e.g.
+ *   "architecture", "reference/features") -- used to resolve relative
+ *   links correctly. Pass "" only for content that isn't a real docs/
+ *   page (there is currently no such caller).
+ */
+export function renderMarkdown(markdown: string, baseDir: string = ''): RenderedDoc {
   const lines = markdown.replace(/\r\n/g, '\n').split('\n')
   const headings: Heading[] = []
   const usedIds = new Set<string>()
-  const html = renderBlocks(lines, headings, usedIds)
+  const html = renderBlocks(lines, headings, usedIds, baseDir)
   return { html, headings }
 }

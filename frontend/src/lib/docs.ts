@@ -5,10 +5,33 @@
  * is no copy step, so the in-app viewer can never drift from the
  * docs/*.md files themselves.
  *
+ * docs/ is organized into topic subdirectories (docs/architecture/,
+ * docs/api/, docs/security/, ...) as of the documentation reorganization
+ * -- see docs/adr for context. Slugs are POSIX relative paths from
+ * docs/ without the .md extension (e.g. "architecture/architecture",
+ * "adr/ADR-0001 - SQLite Default with StorageProvider Abstraction"), and
+ * flow straight through into the URL via the [...slug] catch-all route
+ * (frontend/src/app/documentation/[...slug]/page.tsx) -- a slug
+ * containing "/" simply becomes a multi-segment URL.
+ *
+ * docs/internal/ is excluded entirely from this module -- it holds
+ * non-public planning/business/archive material (see docs/internal's own
+ * docs, none of which are listed below) and must never appear in the
+ * public docs viewer or its search index.
+ *
+ * Nav grouping is directory-driven (one group per top-level docs/
+ * subfolder, see GROUP_LABELS below) rather than a hand-maintained file
+ * list, specifically so new docs added under an existing category appear
+ * automatically without an app-code change -- the previous flat-file
+ * design required a NAV_GROUPS edit for every new doc, which doesn't
+ * scale as the docs tree grows. The strict "fail loudly on drift" property
+ * is preserved: an unrecognized top-level folder, or a recognized one
+ * with zero files, still throws at build time.
+ *
  * Everything here runs at `next build` time only (Node.js fs/child_process
  * access), never in the browser -- consistent with the static export /
  * air-gap requirement that the shipped frontend/out/ needs no server
- * process. See docs/airgap.md and docs/architecture.md#frontend-architecture.
+ * process. See docs/deployment/airgap.md and docs/architecture/architecture.md#frontend-architecture.
  */
 import fs from 'fs'
 import path from 'path'
@@ -17,6 +40,7 @@ import { renderMarkdown, type Heading } from './markdown'
 
 const DOCS_DIR = path.join(process.cwd(), '..', 'docs')
 const REPO_ROOT = path.join(process.cwd(), '..')
+const INTERNAL_DIR_NAME = 'internal'
 
 export interface DocMeta {
   slug: string
@@ -52,26 +76,41 @@ export interface SearchEntry {
   headings: string[]
 }
 
-// Curated navigation, grouped and ordered the same way as docs/index.md.
-// getAllDocsMeta() below throws at build time if this list and the real
-// docs/*.md files on disk ever go out of sync in either direction --
-// deliberately fail loudly rather than silently ship a doc page with no
-// nav entry, or a nav entry pointing at a deleted file. This same order
-// drives the flattened prev/next sequence at the bottom of every page.
-const NAV_GROUPS: { label: string; slugs: string[] }[] = [
-  { label: 'Getting Started', slugs: ['getting-started', 'installation', 'features', 'faq'] },
-  { label: 'Air-Gap & Enterprise', slugs: ['airgap', 'enterprise', 'security', 'configuration', 'deployment'] },
-  { label: 'Architecture & API', slugs: ['architecture', 'api', 'api-versioning'] },
-  { label: 'Access Control', slugs: ['authentication', 'authorization', 'rbac'] },
-  { label: 'Data & Storage', slugs: ['storage', 'storage-architecture', 'migrations', 'database-migrations'] },
-  { label: 'Operations', slugs: ['logging', 'monitoring', 'upgrade', 'troubleshooting', 'release-process'] },
-  { label: 'Compliance', slugs: ['compliance-soc2'] },
-  { label: 'Contributing', slugs: ['development', 'contributing', 'roadmap'] },
-]
+// One nav group per top-level docs/ subdirectory, in display order.
+// "internal" is deliberately absent -- see module docstring.
+const GROUP_LABELS: Record<string, string> = {
+  'getting-started': 'Getting Started',
+  architecture: 'Architecture',
+  adr: 'Architecture Decisions',
+  api: 'API',
+  security: 'Security',
+  development: 'Development',
+  deployment: 'Deployment',
+  integrations: 'Integrations',
+  roadmap: 'Roadmap',
+  reference: 'Reference',
+}
+const GROUP_ORDER = Object.keys(GROUP_LABELS)
 
 function readDocRaw(slug: string): string {
   const file = path.join(DOCS_DIR, `${slug}.md`)
   return fs.readFileSync(file, 'utf-8')
+}
+
+/** Recursively collect POSIX-relative "<sub>/.../name" slugs (no .md) for
+ * every markdown file under `dir` (a path relative to DOCS_DIR). */
+function collectSlugs(dir: string): string[] {
+  const abs = path.join(DOCS_DIR, dir)
+  const out: string[] = []
+  for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
+    const rel = dir ? `${dir}/${entry.name}` : entry.name
+    if (entry.isDirectory()) {
+      out.push(...collectSlugs(rel))
+    } else if (entry.name.toLowerCase().endsWith('.md')) {
+      out.push(rel.replace(/\.md$/i, ''))
+    }
+  }
+  return out
 }
 
 function extractTitle(raw: string, fallbackSlug: string): string {
@@ -93,11 +132,17 @@ function extractExcerpt(raw: string): string {
 }
 
 export function listDocSlugs(): string[] {
-  return fs
-    .readdirSync(DOCS_DIR)
-    .filter((f) => f.toLowerCase().endsWith('.md') && f.toLowerCase() !== 'index.md')
-    .map((f) => f.replace(/\.md$/i, '').toLowerCase())
-    .sort()
+  const topLevel = fs.readdirSync(DOCS_DIR, { withFileTypes: true })
+  const slugs: string[] = []
+  for (const entry of topLevel) {
+    if (entry.isDirectory()) {
+      if (entry.name === INTERNAL_DIR_NAME) continue // never public
+      slugs.push(...collectSlugs(entry.name))
+    } else if (entry.name.toLowerCase().endsWith('.md') && entry.name.toLowerCase() !== 'index.md') {
+      slugs.push(entry.name.replace(/\.md$/i, ''))
+    }
+  }
+  return slugs.sort()
 }
 
 let cachedGroups: DocGroup[] | null = null
@@ -105,28 +150,33 @@ let cachedGroups: DocGroup[] | null = null
 export function getAllDocsMeta(): DocGroup[] {
   if (cachedGroups) return cachedGroups
 
-  const onDisk = new Set(listDocSlugs())
-  const groups: DocGroup[] = NAV_GROUPS.map((g) => ({
-    label: g.label,
-    docs: g.slugs.map((slug) => {
-      if (!onDisk.has(slug)) {
-        throw new Error(
-          `docs viewer nav references "docs/${slug}.md" but that file does not exist. ` +
-            `Fix the NAV_GROUPS list in frontend/src/lib/docs.ts or add the missing docs/${slug}.md.`
-        )
-      }
-      onDisk.delete(slug)
-      return { slug, title: extractTitle(readDocRaw(slug), slug) }
-    }),
-  }))
-
-  if (onDisk.size > 0) {
+  const topLevel = fs.readdirSync(DOCS_DIR, { withFileTypes: true })
+  const unexpectedDirs = topLevel
+    .filter((e) => e.isDirectory() && e.name !== INTERNAL_DIR_NAME && !(e.name in GROUP_LABELS))
+    .map((e) => e.name)
+  if (unexpectedDirs.length > 0) {
     throw new Error(
-      `docs/ contains file(s) not listed in the in-app docs nav: ${Array.from(onDisk)
-        .map((s) => `docs/${s}.md`)
-        .join(', ')}. Add them to NAV_GROUPS in frontend/src/lib/docs.ts.`
+      `docs/ contains subdirector${unexpectedDirs.length === 1 ? 'y' : 'ies'} not listed in GROUP_LABELS: ` +
+        `${unexpectedDirs.join(', ')}. Add ${unexpectedDirs.length === 1 ? 'it' : 'them'} to GROUP_LABELS in ` +
+        `frontend/src/lib/docs.ts (or move the folder under docs/internal/ if it isn't meant to be public).`
     )
   }
+
+  const groups: DocGroup[] = GROUP_ORDER.map((dir) => {
+    if (!fs.existsSync(path.join(DOCS_DIR, dir))) {
+      throw new Error(
+        `GROUP_LABELS in frontend/src/lib/docs.ts references "docs/${dir}/" but that directory does not exist.`
+      )
+    }
+    const slugs = collectSlugs(dir).sort()
+    if (slugs.length === 0) {
+      throw new Error(`"docs/${dir}/" exists but contains no markdown files.`)
+    }
+    return {
+      label: GROUP_LABELS[dir],
+      docs: slugs.map((slug) => ({ slug, title: extractTitle(readDocRaw(slug), slug) })),
+    }
+  })
 
   cachedGroups = groups
   return groups
@@ -208,9 +258,15 @@ export function getVersion(): string {
   return cachedVersion
 }
 
+/** The directory portion of a slug within docs/ (e.g. "architecture/architecture" -> "architecture"). */
+function dirOfSlug(slug: string): string {
+  const idx = slug.lastIndexOf('/')
+  return idx === -1 ? '' : slug.slice(0, idx)
+}
+
 export function getDoc(slug: string): DocPage {
   const raw = readDocRaw(slug)
-  const { html, headings } = renderMarkdown(raw)
+  const { html, headings } = renderMarkdown(raw, dirOfSlug(slug))
   const flat = getFlatSequence()
   const idx = flat.findIndex((d) => d.slug === slug)
   const prev = idx > 0 ? { slug: flat[idx - 1].slug, title: flat[idx - 1].title } : null
@@ -233,7 +289,7 @@ export function getSearchIndex(): SearchEntry[] {
   for (const group of groups) {
     for (const doc of group.docs) {
       const raw = readDocRaw(doc.slug)
-      const { headings } = renderMarkdown(raw)
+      const { headings } = renderMarkdown(raw, dirOfSlug(doc.slug))
       index.push({
         slug: doc.slug,
         title: doc.title,
